@@ -1,4 +1,4 @@
 variable "environment" {
-  description = "Define el tipo de entorno (Desarrollo o produccion ('dev' o 'prod'))"
+  description = "El entorno inyectado por Terragrunt (ej. staging, prod, ephemeral, transversal)"
   type        = string
 }

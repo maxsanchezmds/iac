@@ -7,5 +7,5 @@ terraform {
 }
 
 inputs = {
-    environment = "dev"
+    environment = "ephemeral"
 }
