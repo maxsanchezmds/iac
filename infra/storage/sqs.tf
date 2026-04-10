@@ -1,11 +1,3 @@
-locals {
-  microservicios = [
-    "inventario",
-    "pedidos",
-    "envios",
-    "notificaciones"
-  ]
-}
 
 resource "aws_sqs_queue" "colas" {
   for_each = toset(local.microservicios)
