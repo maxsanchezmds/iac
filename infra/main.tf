@@ -29,9 +29,12 @@ module "database" {
 }
 
 module "compute" {
-  source      = "./compute"
-  environment = var.environment
-  vpc_id      = module.networking.vpc_id
+  source          = "./compute"
+  environment     = var.environment
+  vpc_id          = module.networking.vpc_id
+  public_subnets  = module.networking.public_subnets
+  private_subnets = module.networking.private_subnets
+  microservicios  = local.microservicios
 }
 
 module "storage" {
