@@ -17,3 +17,15 @@ variable "private_subnets" {
 variable "microservicios" {
   type        = list(string)
 }
+
+variable "ecs_execution_role_arn" {
+  type        = string
+}
+
+variable "ecs_task_role_arn" {
+  type        = string
+}
+
+variable "db_parameter_arns" {
+  type        = map(string)
+}
