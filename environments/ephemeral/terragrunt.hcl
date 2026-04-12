@@ -3,15 +3,30 @@ include "root" {
 }
 
 terraform {
-  source = "../../infra/compute"
+  source = "../../infra"
 }
 
-dependency "network_base" {
-  config_path = "../transversal"
+locals {
+  aws_region   = "us-east-1"
+  pr_number    = trimspace(get_env("PR_NUMBER", ""))
+  environment  = "pr-${local.pr_number}"
+}
+
+remote_state {
+  backend = "s3"
+  generate = {
+    path      = "backend.tf"
+    if_exists = "overwrite_terragrunt"
+  }
+  config = {
+    bucket         = "s3-tf-state-smartlogix-2026"
+    key            = "environments/ephemeral/${local.environment}/terraform.tfstate"
+    region         = local.aws_region
+    encrypt        = true
+    dynamodb_table = "dynamo-tfstate-smartlogix-2026"
+  }
 }
 
 inputs = {
-  environment     = "ephemeral" 
-  vpc_id          = dependency.network_base.outputs.vpc_id
-  private_subnets = dependency.network_base.outputs.private_subnets
+  environment = local.environment
 }

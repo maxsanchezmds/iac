@@ -13,7 +13,7 @@ resource "aws_service_discovery_service" "kong" {
 resource "aws_service_discovery_service" "microservicios" {
   for_each = toset(var.microservicios)
   name     = each.key
-  
+
   dns_config {
     namespace_id = aws_service_discovery_private_dns_namespace.internal.id
     dns_records {
@@ -75,7 +75,7 @@ resource "aws_ecs_service" "kong" {
   load_balancer {
     target_group_arn = aws_lb_target_group.kong.arn
     container_name   = "kong"
-    containerPort    = 8000
+    container_port   = 8000
   }
 
   service_registries {
@@ -99,7 +99,7 @@ resource "aws_ecs_task_definition" "microservicios" {
 
   container_definitions = jsonencode([{
     name      = each.key
-    image     = "alpine:latest" # IMAGEN IRRELEVANTE: Github la reemplazará en el primer push a master
+    image     = "alpine:latest" # IMAGEN IRRELEVANTE: GitHub la reemplazará en el primer push a main
     essential = true
     command   = ["tail", "-f", "/dev/null"]
     portMappings = [{

@@ -1,0 +1,84 @@
+name: "Canary Rollout"
+
+on:
+  push:
+    branches: ["main"]
+  schedule:
+    - cron: "*/30 * * * *"
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "Execution mode"
+        required: true
+        default: "advance"
+        type: choice
+        options:
+          - start
+          - advance
+
+permissions:
+  contents: read
+
+env:
+  AWS_REGION: us-east-1
+  AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY }}
+  AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_ACCESS_KEY_SECRET }}
+  TF_INPUT: "false"
+  TG_NON_INTERACTIVE: "true"
+  ROUTE53_HOSTED_ZONE_ID: ${{ secrets.ROUTE53_HOSTED_ZONE_ID }}
+  APP_FQDN: ${{ secrets.APP_FQDN }}
+
+jobs:
+  start-canary:
+    if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.mode == 'start')
+    runs-on: ubuntu-latest
+    concurrency:
+      group: canary-rollout
+      cancel-in-progress: false
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Setup Terragrunt
+        uses: autero1/action-terragrunt@v3.0.2
+        with:
+          terragrunt-version: 0.77.5
+
+      - name: Validate Terraform
+        run: |
+          terraform -chdir=infra fmt -check -recursive
+          terraform -chdir=infra init -backend=false
+          terraform -chdir=infra validate
+
+      - name: Start Canary Rollout
+        run: |
+          chmod +x .github/scripts/canary_rollout.sh
+          .github/scripts/canary_rollout.sh start
+
+  advance-canary:
+    if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.mode == 'advance')
+    runs-on: ubuntu-latest
+    concurrency:
+      group: canary-rollout
+      cancel-in-progress: false
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Setup Terragrunt
+        uses: autero1/action-terragrunt@v3.0.2
+        with:
+          terragrunt-version: 0.77.5
+
+      - name: Advance Canary Rollout
+        run: |
+          chmod +x .github/scripts/canary_rollout.sh
+          .github/scripts/canary_rollout.sh advance

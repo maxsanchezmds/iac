@@ -1,5 +1,5 @@
 variable "environment" {
-  description = "Define el tipo de entorno (Desarrollo o produccion ('dev' o 'prod'))"
+  description = "Entorno de despliegue (main, canary o pr-<numero>)"
   type        = string
 }
 

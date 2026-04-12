@@ -1,24 +1,24 @@
 variable "environment" {
-  type        = string
+  type = string
 }
 
 variable "vpc_id" {
-  type        = string
+  type = string
 }
 
 variable "private_subnets" {
-  type        = list(string)
+  type = list(string)
 }
 
 variable "vpc_cidr_block" {
-  type        = string
+  type = string
 }
 
 variable "microservicios" {
-  type        = list(string)
+  type = list(string)
 }
 
 variable "db_passwords" {
-  type        = map(string)
-  sensitive   = true
+  type      = map(string)
+  sensitive = true
 }

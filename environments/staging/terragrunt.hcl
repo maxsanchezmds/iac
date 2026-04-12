@@ -3,15 +3,9 @@ include "root" {
 }
 
 terraform {
-  source = "../../infra/compute"
-}
-
-dependency "network_base" {
-  config_path = "../transversal"
+  source = "../../infra"
 }
 
 inputs = {
-  environment = "staging"
-  vpc_id = dependency.network_base.outputs.vpc_id
-  private_subnets = dependency.network_base.outputs.private_subnets
+  environment = "canary"
 }

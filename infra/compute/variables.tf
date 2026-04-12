@@ -1,31 +1,31 @@
 variable "environment" {
-  type        = string
+  type = string
 }
 
 variable "vpc_id" {
-  type        = string
+  type = string
 }
 
 variable "public_subnets" {
-  type        = list(string)
+  type = list(string)
 }
 
 variable "private_subnets" {
-  type        = list(string)
+  type = list(string)
 }
 
 variable "microservicios" {
-  type        = list(string)
+  type = list(string)
 }
 
 variable "ecs_execution_role_arn" {
-  type        = string
+  type = string
 }
 
 variable "ecs_task_role_arn" {
-  type        = string
+  type = string
 }
 
 variable "db_parameter_arns" {
-  type        = map(string)
+  type = map(string)
 }

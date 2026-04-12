@@ -1,5 +1,5 @@
 resource "aws_db_subnet_group" "db_subnet" {
-  name = "sng-smartlogix-${var.environment}"
+  name       = "sng-smartlogix-${var.environment}"
   subnet_ids = var.private_subnets
 }
 

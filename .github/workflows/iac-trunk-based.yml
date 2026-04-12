@@ -1,0 +1,77 @@
+name: "IaC Trunk Based Deploy"
+
+on:
+  pull_request:
+    branches: ["main"]
+    types: [opened, synchronize, reopened, closed]
+
+permissions:
+  contents: read
+
+env:
+  AWS_REGION: us-east-1
+  AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY }}
+  AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_ACCESS_KEY_SECRET }}
+  TF_INPUT: "false"
+  TG_NON_INTERACTIVE: "true"
+
+jobs:
+  ephemeral-apply:
+    if: github.event_name == 'pull_request' && github.event.action != 'closed' && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    concurrency:
+      group: ephemeral-pr-${{ github.event.pull_request.number }}
+      cancel-in-progress: true
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Setup Terragrunt
+        uses: autero1/action-terragrunt@v3.0.2
+        with:
+          terragrunt-version: 0.77.5
+
+      - name: Format and Validate Terraform
+        run: |
+          terraform -chdir=infra fmt -check -recursive
+          terraform -chdir=infra init -backend=false
+          terraform -chdir=infra validate
+
+      - name: Apply Ephemeral Environment
+        working-directory: environments/ephemeral
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          terragrunt init -reconfigure
+          terragrunt apply -auto-approve -lock-timeout=5m
+
+  ephemeral-destroy:
+    if: github.event_name == 'pull_request' && github.event.action == 'closed' && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    concurrency:
+      group: ephemeral-pr-${{ github.event.pull_request.number }}
+      cancel-in-progress: false
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Setup Terragrunt
+        uses: autero1/action-terragrunt@v3.0.2
+        with:
+          terragrunt-version: 0.77.5
+
+      - name: Destroy Ephemeral Environment
+        working-directory: environments/ephemeral
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          terragrunt init -reconfigure
+          terragrunt destroy -auto-approve -lock-timeout=5m
