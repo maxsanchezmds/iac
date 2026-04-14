@@ -2,7 +2,7 @@ name: "Canary Rollout"
 
 on:
   push:
-    branches: ["main"]
+    branches: ["master"]
   schedule:
     - cron: "*/30 * * * *"
   workflow_dispatch:

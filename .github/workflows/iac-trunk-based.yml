@@ -2,7 +2,7 @@ name: "IaC Trunk Based Deploy"
 
 on:
   pull_request:
-    branches: ["main"]
+    branches: ["master"]
     types: [opened, synchronize, reopened, closed]
 
 permissions:
