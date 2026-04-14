@@ -1,17 +1,17 @@
 output "alb_dns_name" {
-  value = aws_lb.main.dns_name
+  value = local.use_dedicated_ingress ? aws_lb.main[0].dns_name : null
 }
 
 output "alb_zone_id" {
-  value = aws_lb.main.zone_id
+  value = local.use_dedicated_ingress ? aws_lb.main[0].zone_id : null
 }
 
 output "alb_arn" {
-  value = aws_lb.main.arn
+  value = local.use_dedicated_ingress ? aws_lb.main[0].arn : null
 }
 
 output "http_listener_arn" {
-  value = aws_lb_listener.http.arn
+  value = local.use_dedicated_ingress ? aws_lb_listener.http[0].arn : null
 }
 
 output "ecs_cluster_id" {

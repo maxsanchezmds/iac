@@ -22,6 +22,10 @@ resource "aws_service_discovery_private_dns_namespace" "internal" {
   vpc         = var.vpc_id
 }
 
+locals {
+  alb_security_group_id = var.ingress_mode == "dedicated" ? aws_security_group.alb[0].id : var.shared_alb_security_group_id
+}
+
 resource "aws_security_group" "ecs_tasks" {
   name   = "sg-ecs-tasks-smartlogix-${var.environment}"
   vpc_id = var.vpc_id
@@ -30,7 +34,7 @@ resource "aws_security_group" "ecs_tasks" {
     from_port       = 8000
     to_port         = 8000
     protocol        = "tcp"
-    security_groups = [aws_security_group.alb.id]
+    security_groups = [local.alb_security_group_id]
   }
 
   ingress {
@@ -45,5 +49,12 @@ resource "aws_security_group" "ecs_tasks" {
     to_port     = 0
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  lifecycle {
+    precondition {
+      condition     = var.ingress_mode != "shared" || var.shared_alb_security_group_id != null
+      error_message = "shared_alb_security_group_id es requerido cuando ingress_mode = shared."
+    }
   }
 }

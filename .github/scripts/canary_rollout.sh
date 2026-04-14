@@ -2,11 +2,11 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+TRANSVERSAL_DIR="environments/transversal"
 ACTIVE_SLOT_PARAM="${ACTIVE_SLOT_PARAM:-/smartlogix/deploy/active_slot}"
 ROLLOUT_STATE_PARAM="${ROLLOUT_STATE_PARAM:-/smartlogix/deploy/canary_rollout_state}"
 ROLLOUT_INTERVAL_SECONDS="${ROLLOUT_INTERVAL_SECONDS:-17280}" # 24h / 5 intervals
-CANARY_REQUESTS="${CANARY_REQUESTS:-20}"
-CANARY_MAX_FAILED_REQUESTS="${CANARY_MAX_FAILED_REQUESTS:-1}"
+CANARY_MIN_HEALTHY_TARGETS="${CANARY_MIN_HEALTHY_TARGETS:-1}"
 
 require_cmd() {
   local cmd="$1"
@@ -84,11 +84,23 @@ run_terragrunt() {
   )
 }
 
+run_terragrunt_transversal() {
+  (
+    cd "${ROOT_DIR}/${TRANSVERSAL_DIR}"
+    terragrunt init -reconfigure -input=false >/dev/null
+    terragrunt "$@" -input=false
+  )
+}
+
 slot_exists() {
   local slot="$1"
   local env_dir
   env_dir="$(slot_to_dir "$slot")"
   (cd "${ROOT_DIR}/${env_dir}" && terragrunt output -json >/dev/null 2>&1)
+}
+
+transversal_exists() {
+  (cd "${ROOT_DIR}/${TRANSVERSAL_DIR}" && terragrunt output -json >/dev/null 2>&1)
 }
 
 slot_output_json() {
@@ -98,16 +110,20 @@ slot_output_json() {
   (cd "${ROOT_DIR}/${env_dir}" && terragrunt output -json)
 }
 
-slot_alb_dns() {
-  slot_output_json "$1" | jq -r '.alb_dns_name.value'
+transversal_output_json() {
+  (cd "${ROOT_DIR}/${TRANSVERSAL_DIR}" && terragrunt output -json)
 }
 
-slot_alb_zone_id() {
-  slot_output_json "$1" | jq -r '.alb_zone_id.value'
+ingress_listener_arn() {
+  transversal_output_json | jq -r '.http_listener_arn.value'
 }
 
-slot_listener_arn() {
-  slot_output_json "$1" | jq -r '.http_listener_arn.value'
+ingress_alb_dns() {
+  transversal_output_json | jq -r '.alb_dns_name.value'
+}
+
+ingress_alb_zone_id() {
+  transversal_output_json | jq -r '.alb_zone_id.value'
 }
 
 slot_target_group_arn() {
@@ -122,6 +138,15 @@ ensure_slot_exists() {
 
   echo "Slot ${slot} has no state yet. Creating baseline stack..."
   run_terragrunt "$slot" apply -auto-approve -lock-timeout=5m >/dev/null
+}
+
+ensure_transversal_exists() {
+  if transversal_exists; then
+    return 0
+  fi
+
+  echo "Transversal stack has no state yet. Creating shared networking and ingress..."
+  run_terragrunt_transversal apply -auto-approve -lock-timeout=5m >/dev/null
 }
 
 set_alb_listener_weights() {
@@ -153,32 +178,31 @@ set_alb_listener_weights() {
     --default-actions "$actions_json" >/dev/null
 }
 
-set_slot_listener_full_weight() {
-  local slot="$1"
-  local listener_arn tg_arn actions_json
-  listener_arn="$(slot_listener_arn "$slot")"
-  tg_arn="$(slot_target_group_arn "$slot")"
+set_listener_single_target() {
+  local listener_arn="$1"
+  local tg_arn="$2"
+  local actions_json
 
   actions_json="$(jq -cn --arg tg "$tg_arn" '[{Type:"forward", TargetGroupArn:$tg}]')"
+
   aws elbv2 modify-listener \
     --listener-arn "$listener_arn" \
     --default-actions "$actions_json" >/dev/null
 }
 
-switch_primary_dns_to_slot_if_configured() {
+switch_primary_dns_to_ingress_if_configured() {
   if [[ -z "${ROUTE53_HOSTED_ZONE_ID:-}" || -z "${APP_FQDN:-}" ]]; then
-    echo "ROUTE53_HOSTED_ZONE_ID/APP_FQDN not configured. Skipping final DNS switch."
+    echo "ROUTE53_HOSTED_ZONE_ID/APP_FQDN not configured. Skipping DNS upsert."
     return 0
   fi
 
-  local slot="$1"
   local dns zone
-  dns="$(slot_alb_dns "$slot")"
-  zone="$(slot_alb_zone_id "$slot")"
+  dns="$(ingress_alb_dns)"
+  zone="$(ingress_alb_zone_id)"
 
   cat >"${ROOT_DIR}/route53-cutover.json" <<EOF
 {
-  "Comment": "Cutover primary endpoint to ${slot}",
+  "Comment": "Point primary endpoint to shared ingress ALB",
   "Changes": [
     {
       "Action": "UPSERT",
@@ -204,32 +228,39 @@ EOF
 
 health_check_slot() {
   local slot="$1"
-  local dns
-  dns="$(slot_alb_dns "$slot")"
-  local failed=0
+  local tg_arn
+  tg_arn="$(slot_target_group_arn "$slot")"
 
-  for _ in $(seq 1 "$CANARY_REQUESTS"); do
-    local code
-    code="$(curl -sS -o /dev/null -w "%{http_code}" "http://${dns}/status" || true)"
-    if [[ "$code" != "200" ]]; then
-      failed=$((failed + 1))
-    fi
-    sleep 3
-  done
+  local states
+  states="$(aws elbv2 describe-target-health \
+    --target-group-arn "$tg_arn" \
+    --query 'TargetHealthDescriptions[].TargetHealth.State' \
+    --output text 2>/dev/null || true)"
 
-  echo "Canary health check failures: ${failed}/${CANARY_REQUESTS}"
-  [[ "$failed" -le "$CANARY_MAX_FAILED_REQUESTS" ]]
+  if [[ -z "$states" ]]; then
+    echo "No target health data available for slot ${slot}."
+    return 1
+  fi
+
+  local healthy total
+  total="$(awk '{print NF}' <<<"$states")"
+  healthy="$(tr '\t' '\n' <<<"$states" | awk '$1=="healthy"{c++} END{print c+0}')"
+
+  echo "Slot ${slot} target health: healthy=${healthy}, total=${total}"
+  [[ "$healthy" -ge "$CANARY_MIN_HEALTHY_TARGETS" ]]
 }
 
 start_rollout() {
   local active_slot inactive_slot ingress_listener active_tg inactive_tg now state
+  ensure_transversal_exists
+
   active_slot="$(get_active_slot)"
   inactive_slot="$(opposite_slot "$active_slot")"
 
   ensure_slot_exists "$active_slot"
   run_terragrunt "$inactive_slot" apply -auto-approve -lock-timeout=5m >/dev/null
 
-  ingress_listener="$(slot_listener_arn "$active_slot")"
+  ingress_listener="$(ingress_listener_arn)"
   active_tg="$(slot_target_group_arn "$active_slot")"
   inactive_tg="$(slot_target_group_arn "$inactive_slot")"
 
@@ -254,7 +285,8 @@ start_rollout() {
       last_shift_epoch:$last_shift_epoch
     }')"
   put_rollout_state "$state"
-  echo "Canary rollout started via ALB listener weights: ${active_slot} -> ${inactive_slot} at 5%"
+  switch_primary_dns_to_ingress_if_configured
+  echo "Canary rollout started: ${active_slot} -> ${inactive_slot} at 5%"
 }
 
 advance_rollout() {
@@ -282,8 +314,8 @@ advance_rollout() {
   fi
 
   if ! health_check_slot "$inactive_slot"; then
-    echo "Canary health check failed. Rolling back traffic to ${active_slot} via ALB."
-    set_alb_listener_weights "$ingress_listener" "$active_tg" "$inactive_tg" 0
+    echo "Canary health check failed. Rolling back traffic to ${active_slot}."
+    set_listener_single_target "$ingress_listener" "$active_tg"
     delete_rollout_state
     exit 1
   fi
@@ -299,12 +331,11 @@ advance_rollout() {
 
   local next_weight="${weights[$next_step]}"
   set_alb_listener_weights "$ingress_listener" "$active_tg" "$inactive_tg" "$next_weight"
-  echo "Traffic shifted via ALB listener to ${inactive_slot}: ${next_weight}%"
+  echo "Traffic shifted to ${inactive_slot}: ${next_weight}%"
 
   if [[ "$next_step" -eq "$max_index" ]]; then
-    echo "Canary reached 100%. Finalizing cutover and destroying previous active slot: ${active_slot}"
-    set_slot_listener_full_weight "$inactive_slot"
-    switch_primary_dns_to_slot_if_configured "$inactive_slot"
+    echo "Canary reached 100%. Destroying previous active slot: ${active_slot}"
+    set_listener_single_target "$ingress_listener" "$inactive_tg"
     run_terragrunt "$active_slot" destroy -auto-approve -lock-timeout=5m >/dev/null
     put_active_slot "$inactive_slot"
     delete_rollout_state
@@ -323,9 +354,15 @@ advance_rollout() {
 abort_rollout() {
   echo "Aborting canary rollout and restoring main as sole active slot."
 
+  ensure_transversal_exists
   ensure_slot_exists "main"
-  set_slot_listener_full_weight "main"
-  switch_primary_dns_to_slot_if_configured "main"
+
+  local listener_arn main_tg
+  listener_arn="$(ingress_listener_arn)"
+  main_tg="$(slot_target_group_arn "main")"
+
+  set_listener_single_target "$listener_arn" "$main_tg"
+  switch_primary_dns_to_ingress_if_configured
   put_active_slot "main"
   delete_rollout_state
 
@@ -349,7 +386,6 @@ main() {
   require_cmd aws
   require_cmd terragrunt
   require_cmd jq
-  require_cmd curl
 
   if [[ "$#" -ne 1 ]]; then
     usage

@@ -3,7 +3,7 @@ include "root" {
 }
 
 terraform {
-  source = "../../infra/networking"
+  source = "../../infra/transversal"
 }
 
 inputs = {
