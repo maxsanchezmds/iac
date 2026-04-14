@@ -2,7 +2,7 @@ resource "random_password" "db_password" {
   for_each         = toset(var.microservicios)
   length           = 16
   special          = true
-  override_special = "_-^!" 
+  override_special = "_-^!"
 }
 
 resource "aws_ssm_parameter" "db_password" {
