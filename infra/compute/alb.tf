@@ -4,7 +4,7 @@ locals {
 
 resource "aws_security_group" "alb" {
   count  = local.use_dedicated_ingress ? 1 : 0
-  name   = "sg-alb-smartlogix-${var.environment}"
+  name   = "alb-sg-smartlogix-${var.environment}"
   vpc_id = var.vpc_id
 
   ingress {

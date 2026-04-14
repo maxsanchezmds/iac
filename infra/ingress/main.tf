@@ -1,5 +1,5 @@
 resource "aws_security_group" "ingress_alb" {
-  name   = "sg-alb-smartlogix-${var.environment}"
+  name   = "alb-sg-smartlogix-${var.environment}"
   vpc_id = var.vpc_id
 
   ingress {

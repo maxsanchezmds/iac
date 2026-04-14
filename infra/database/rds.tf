@@ -4,7 +4,7 @@ resource "aws_db_subnet_group" "db_subnet" {
 }
 
 resource "aws_security_group" "rds_sg" {
-  name   = "sg-rds-smartlogix-${var.environment}"
+  name   = "rds-sg-smartlogix-${var.environment}"
   vpc_id = var.vpc_id
 
   ingress {

@@ -27,7 +27,7 @@ locals {
 }
 
 resource "aws_security_group" "ecs_tasks" {
-  name   = "sg-ecs-tasks-smartlogix-${var.environment}"
+  name   = "ecs-tasks-sg-smartlogix-${var.environment}"
   vpc_id = var.vpc_id
 
   ingress {
