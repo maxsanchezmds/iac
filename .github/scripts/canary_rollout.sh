@@ -18,8 +18,8 @@ require_cmd() {
 
 slot_to_dir() {
   case "$1" in
-    main) echo "environments/prod" ;;
-    canary) echo "environments/staging" ;;
+    main) echo "environments/main" ;;
+    canary) echo "environments/canary" ;;
     *)
       echo "Unsupported slot: $1" >&2
       exit 1
