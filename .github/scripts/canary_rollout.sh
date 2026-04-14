@@ -84,6 +84,13 @@ run_terragrunt() {
   )
 }
 
+slot_exists() {
+  local slot="$1"
+  local env_dir
+  env_dir="$(slot_to_dir "$slot")"
+  (cd "${ROOT_DIR}/${env_dir}" && terragrunt output -json >/dev/null 2>&1)
+}
+
 slot_output_json() {
   local slot="$1"
   local env_dir
@@ -109,9 +116,7 @@ slot_target_group_arn() {
 
 ensure_slot_exists() {
   local slot="$1"
-  local env_dir
-  env_dir="$(slot_to_dir "$slot")"
-  if (cd "${ROOT_DIR}/${env_dir}" && terragrunt output -json >/dev/null 2>&1); then
+  if slot_exists "$slot"; then
     return 0
   fi
 
@@ -315,9 +320,28 @@ advance_rollout() {
   put_rollout_state "$updated"
 }
 
+abort_rollout() {
+  echo "Aborting canary rollout and restoring main as sole active slot."
+
+  ensure_slot_exists "main"
+  set_slot_listener_full_weight "main"
+  switch_primary_dns_to_slot_if_configured "main"
+  put_active_slot "main"
+  delete_rollout_state
+
+  if slot_exists "canary"; then
+    echo "Destroying canary slot."
+    run_terragrunt "canary" destroy -auto-approve -lock-timeout=5m >/dev/null
+  else
+    echo "Canary slot does not exist. Nothing to destroy."
+  fi
+
+  echo "Abort completed. All traffic is served by main."
+}
+
 usage() {
   cat <<EOF
-Usage: $0 <start|advance>
+Usage: $0 <start|advance|abort>
 EOF
 }
 
@@ -335,6 +359,7 @@ main() {
   case "$1" in
     start) start_rollout ;;
     advance) advance_rollout ;;
+    abort) abort_rollout ;;
     *)
       usage
       exit 1

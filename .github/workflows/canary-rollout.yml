@@ -15,6 +15,7 @@ on:
         options:
           - start
           - advance
+          - abort
 
 permissions:
   contents: read
@@ -82,3 +83,27 @@ jobs:
         run: |
           chmod +x .github/scripts/canary_rollout.sh
           .github/scripts/canary_rollout.sh advance
+
+  abort-canary:
+    if: github.event_name == 'workflow_dispatch' && inputs.mode == 'abort'
+    runs-on: ubuntu-latest
+    concurrency:
+      group: canary-rollout
+      cancel-in-progress: false
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Setup Terragrunt
+        uses: autero1/action-terragrunt@v3.0.2
+        with:
+          terragrunt-version: 0.77.5
+
+      - name: Abort Canary Rollout
+        run: |
+          chmod +x .github/scripts/canary_rollout.sh
+          .github/scripts/canary_rollout.sh abort
