@@ -31,9 +31,10 @@ jobs:
         uses: hashicorp/setup-terraform@v3
 
       - name: Setup Terragrunt
-        uses: autero1/action-terragrunt@v3.0.2
+        uses: gruntwork-io/terragrunt-action@53dbdc2c3d43e82bf3bae10b734a968196442bec # v3.2.0
         with:
-          terragrunt-version: 0.77.5
+          tg_version: 1.0.1
+          tf_path: terraform
 
       - name: Format and Validate Terraform
         run: |
@@ -64,9 +65,10 @@ jobs:
         uses: hashicorp/setup-terraform@v3
 
       - name: Setup Terragrunt
-        uses: autero1/action-terragrunt@v3.0.2
+        uses: gruntwork-io/terragrunt-action@53dbdc2c3d43e82bf3bae10b734a968196442bec # v3.2.0
         with:
-          terragrunt-version: 0.77.5
+          tg_version: 1.0.1
+          tf_path: terraform
 
       - name: Destroy Ephemeral Environment
         working-directory: environments/ephemeral
