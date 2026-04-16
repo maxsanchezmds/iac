@@ -150,7 +150,7 @@ outputs_have_required_keys() {
         (.[$k].value | length) > 0
       )
     ' >/dev/null <<<"$outputs_json"; then
-      echo "Missing or empty required transversal output: ${key}" >&2
+      echo "Missing or empty required output: ${key}" >&2
       return 1
     fi
   done

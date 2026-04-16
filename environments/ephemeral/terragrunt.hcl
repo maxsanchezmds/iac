@@ -1,5 +1,5 @@
 include "root" {
-  path = find_in_parent_folders()
+  path = find_in_parent_folders("root.hcl")
 }
 
 terraform {
@@ -7,9 +7,9 @@ terraform {
 }
 
 locals {
-  aws_region   = "us-east-1"
-  pr_number    = trimspace(get_env("PR_NUMBER", ""))
-  environment  = "pr-${local.pr_number}"
+  aws_region  = "us-east-1"
+  pr_number   = trimspace(get_env("PR_NUMBER", ""))
+  environment = "pr-${local.pr_number}"
 }
 
 remote_state {
