@@ -44,13 +44,12 @@ resource "aws_lb_target_group" "kong" {
   target_type = "ip"
 
   health_check {
-    port                = "8100"
-    path                = "/status"
+    path                = "/"
     healthy_threshold   = 3
     unhealthy_threshold = 3
     timeout             = 5
     interval            = 30
-    matcher             = "200"
+    matcher             = "200-499"
   }
 }
 

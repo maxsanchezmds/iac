@@ -37,20 +37,12 @@ resource "aws_ecs_task_definition" "kong" {
     name      = "kong"
     image     = "kong:latest"
     essential = true
-    portMappings = [
-      {
-        containerPort = 8000
-        hostPort      = 8000
-      },
-      {
-        containerPort = 8100
-        hostPort      = 8100
-      }
-    ]
+    portMappings = [{
+      containerPort = 8000
+      hostPort      = 8000
+    }]
     environment = [
       { name = "KONG_DATABASE", value = "off" }, # Kong en modo DB-less
-      # Expose a dedicated status endpoint for ALB target-group health checks.
-      { name = "KONG_STATUS_LISTEN", value = "0.0.0.0:8100" },
       { name = "KONG_PROXY_ACCESS_LOG", value = "/dev/stdout" },
       { name = "KONG_ADMIN_ACCESS_LOG", value = "/dev/stdout" },
       { name = "KONG_PROXY_ERROR_LOG", value = "/dev/stderr" },
