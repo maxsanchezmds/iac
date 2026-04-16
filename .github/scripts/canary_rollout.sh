@@ -203,12 +203,7 @@ ensure_slot_ready() {
   local outputs_json
 
   if slot_exists "$slot"; then
-    outputs_json="$(slot_output_json "$slot")"
-    if slot_has_required_outputs "$outputs_json"; then
-      return 0
-    fi
-
-    echo "Slot ${slot} state exists but is missing required outputs. Reconciling stack..."
+    echo "Reconciling slot ${slot} stack to current configuration..."
   else
     echo "Slot ${slot} has no state yet. Creating baseline stack..."
   fi
@@ -225,12 +220,7 @@ ensure_slot_ready() {
 ensure_transversal_exists() {
   local outputs_json
   if transversal_exists; then
-    outputs_json="$(transversal_output_json)"
-    if transversal_has_required_outputs "$outputs_json"; then
-      return 0
-    fi
-
-    echo "Transversal state exists but is missing required outputs. Reconciling stack..."
+    echo "Reconciling transversal stack to current configuration..."
   else
     echo "Transversal stack has no state yet. Creating shared networking and ingress..."
   fi
@@ -423,9 +413,6 @@ advance_rollout() {
   local active_slot inactive_slot ingress_listener active_tg inactive_tg step_index last_shift now elapsed
   active_slot="$(jq -r '.active_slot' <<<"$state")"
   inactive_slot="$(jq -r '.inactive_slot' <<<"$state")"
-  ingress_listener="$(jq -r '.ingress_listener_arn' <<<"$state")"
-  active_tg="$(jq -r '.active_target_group_arn' <<<"$state")"
-  inactive_tg="$(jq -r '.inactive_target_group_arn' <<<"$state")"
   step_index="$(jq -r '.step_index' <<<"$state")"
   last_shift="$(jq -r '.last_shift_epoch' <<<"$state")"
 
@@ -435,6 +422,12 @@ advance_rollout() {
     echo "Waiting next interval. Elapsed ${elapsed}s of ${ROLLOUT_INTERVAL_SECONDS}s."
     return 0
   fi
+
+  ensure_slot_ready "$inactive_slot"
+
+  ingress_listener="$(ingress_listener_arn)"
+  active_tg="$(slot_target_group_arn "$active_slot")"
+  inactive_tg="$(slot_target_group_arn "$inactive_slot")"
 
   require_valid_arn "rollout listener ARN" "$ingress_listener"
   require_valid_arn "rollout active target group ARN" "$active_tg"
@@ -472,9 +465,16 @@ advance_rollout() {
 
   local updated
   updated="$(jq \
+    --arg listener "$ingress_listener" \
+    --arg active_tg "$active_tg" \
+    --arg inactive_tg "$inactive_tg" \
     --argjson step_index "$next_step" \
     --argjson last_shift_epoch "$now" \
-    '.step_index = $step_index | .last_shift_epoch = $last_shift_epoch' <<<"$state")"
+    '.ingress_listener_arn = $listener |
+     .active_target_group_arn = $active_tg |
+     .inactive_target_group_arn = $inactive_tg |
+     .step_index = $step_index |
+     .last_shift_epoch = $last_shift_epoch' <<<"$state")"
   put_rollout_state "$updated"
 }
 
