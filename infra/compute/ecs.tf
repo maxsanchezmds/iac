@@ -40,6 +40,13 @@ resource "aws_security_group" "ecs_tasks" {
   }
 
   ingress {
+    from_port       = 8100
+    to_port         = 8100
+    protocol        = "tcp"
+    security_groups = [local.alb_security_group_id]
+  }
+
+  ingress {
     from_port = 0
     to_port   = 0
     protocol  = "-1"

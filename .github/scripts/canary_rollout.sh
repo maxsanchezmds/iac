@@ -7,6 +7,8 @@ ACTIVE_SLOT_PARAM="${ACTIVE_SLOT_PARAM:-/smartlogix/deploy/active_slot}"
 ROLLOUT_STATE_PARAM="${ROLLOUT_STATE_PARAM:-/smartlogix/deploy/canary_rollout_state}"
 ROLLOUT_INTERVAL_SECONDS="${ROLLOUT_INTERVAL_SECONDS:-300}" # 5m between shifts (~25-30m full rollout)
 CANARY_MIN_HEALTHY_TARGETS="${CANARY_MIN_HEALTHY_TARGETS:-1}"
+CANARY_HEALTH_RETRIES="${CANARY_HEALTH_RETRIES:-6}"
+CANARY_HEALTH_RETRY_INTERVAL_SECONDS="${CANARY_HEALTH_RETRY_INTERVAL_SECONDS:-20}"
 REQUIRED_TRANSVERSAL_OUTPUTS=(
   "vpc_id"
   "private_subnets"
@@ -351,6 +353,26 @@ health_check_slot() {
   [[ "$healthy" -ge "$CANARY_MIN_HEALTHY_TARGETS" ]]
 }
 
+wait_for_slot_health() {
+  local slot="$1"
+  local attempt=1
+
+  while [[ "$attempt" -le "$CANARY_HEALTH_RETRIES" ]]; do
+    if health_check_slot "$slot"; then
+      return 0
+    fi
+
+    if [[ "$attempt" -lt "$CANARY_HEALTH_RETRIES" ]]; then
+      echo "Canary health check attempt ${attempt}/${CANARY_HEALTH_RETRIES} failed. Retrying in ${CANARY_HEALTH_RETRY_INTERVAL_SECONDS}s..."
+      sleep "$CANARY_HEALTH_RETRY_INTERVAL_SECONDS"
+    fi
+
+    attempt=$((attempt + 1))
+  done
+
+  return 1
+}
+
 start_rollout() {
   local active_slot inactive_slot ingress_listener active_tg inactive_tg now state
   ensure_transversal_exists
@@ -418,7 +440,7 @@ advance_rollout() {
   require_valid_arn "rollout active target group ARN" "$active_tg"
   require_valid_arn "rollout inactive target group ARN" "$inactive_tg"
 
-  if ! health_check_slot "$inactive_slot"; then
+  if ! wait_for_slot_health "$inactive_slot"; then
     echo "Canary health check failed. Rolling back traffic to ${active_slot}."
     set_listener_single_target "$ingress_listener" "$active_tg"
     delete_rollout_state
