@@ -20,6 +20,10 @@ resource "aws_service_discovery_private_dns_namespace" "internal" {
   name        = local.service_discovery_namespace_name
   description = "Service discovery DNS para ruteo de Kong a NestJS"
   vpc         = var.vpc_id
+
+  lifecycle {
+    ignore_changes = [name]
+  }
 }
 
 locals {
