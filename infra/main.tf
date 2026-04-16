@@ -44,6 +44,7 @@ module "compute" {
   environment                  = var.environment
   ingress_mode                 = local.use_shared_ingress ? "shared" : "dedicated"
   shared_alb_security_group_id = local.use_shared_ingress ? var.shared_alb_security_group_id : null
+  shared_http_listener_arn     = local.use_shared_ingress ? var.shared_http_listener_arn : null
   vpc_id                       = local.vpc_id
   public_subnets               = local.public_subnets
   private_subnets              = local.private_subnets

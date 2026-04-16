@@ -82,6 +82,11 @@ resource "aws_ecs_service" "kong" {
     registry_arn = aws_service_discovery_service.kong.arn
   }
 
+  depends_on = [
+    aws_lb_listener.http,
+    aws_lb_listener_rule.shared_kong_bootstrap
+  ]
+
   lifecycle {
     ignore_changes = [task_definition, desired_count]
   }
