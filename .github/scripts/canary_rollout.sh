@@ -5,7 +5,7 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 TRANSVERSAL_DIR="environments/transversal"
 ACTIVE_SLOT_PARAM="${ACTIVE_SLOT_PARAM:-/smartlogix/deploy/active_slot}"
 ROLLOUT_STATE_PARAM="${ROLLOUT_STATE_PARAM:-/smartlogix/deploy/canary_rollout_state}"
-ROLLOUT_INTERVAL_SECONDS="${ROLLOUT_INTERVAL_SECONDS:-17280}" # 24h / 5 intervals
+ROLLOUT_INTERVAL_SECONDS="${ROLLOUT_INTERVAL_SECONDS:-300}" # 5m between shifts (~25-30m full rollout)
 CANARY_MIN_HEALTHY_TARGETS="${CANARY_MIN_HEALTHY_TARGETS:-1}"
 REQUIRED_TRANSVERSAL_OUTPUTS=(
   "vpc_id"
