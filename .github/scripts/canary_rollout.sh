@@ -17,6 +17,9 @@ REQUIRED_TRANSVERSAL_OUTPUTS=(
   "alb_dns_name"
   "alb_zone_id"
 )
+REQUIRED_SLOT_OUTPUTS=(
+  "target_group_kong_arn"
+)
 
 require_cmd() {
   local cmd="$1"
@@ -124,18 +127,23 @@ transversal_output_json() {
   (cd "${ROOT_DIR}/${TRANSVERSAL_DIR}" && terragrunt output -json)
 }
 
-transversal_has_required_outputs() {
+outputs_have_required_keys() {
   local outputs_json="$1"
+  shift
+  local required_keys=("$@")
 
   local key
-  for key in "${REQUIRED_TRANSVERSAL_OUTPUTS[@]}"; do
+  for key in "${required_keys[@]}"; do
     if ! jq -e --arg k "$key" '
       has($k) and
       .[$k] != null and
       .[$k].value != null and
       (
         (.[$k].value | type) != "string" or
-        (.[$k].value | length) > 0
+        (
+          (.[$k].value | length) > 0 and
+          .[$k].value != "null"
+        )
       ) and
       (
         (.[$k].value | type) != "array" or
@@ -146,6 +154,30 @@ transversal_has_required_outputs() {
       return 1
     fi
   done
+}
+
+transversal_has_required_outputs() {
+  local outputs_json="$1"
+  outputs_have_required_keys "$outputs_json" "${REQUIRED_TRANSVERSAL_OUTPUTS[@]}"
+}
+
+slot_has_required_outputs() {
+  local outputs_json="$1"
+  outputs_have_required_keys "$outputs_json" "${REQUIRED_SLOT_OUTPUTS[@]}"
+}
+
+is_valid_arn() {
+  local value="$1"
+  [[ -n "$value" && "$value" != "null" && "$value" =~ ^arn:aws[a-zA-Z-]*:[a-z0-9-]+:[a-z0-9-]*:[0-9]*:.+ ]]
+}
+
+require_valid_arn() {
+  local label="$1"
+  local value="$2"
+  if ! is_valid_arn "$value"; then
+    echo "Invalid ${label}: '${value}'. The rollout cannot continue with an empty or malformed ARN." >&2
+    exit 1
+  fi
 }
 
 ingress_listener_arn() {
@@ -164,14 +196,28 @@ slot_target_group_arn() {
   slot_output_json "$1" | jq -r '.target_group_kong_arn.value'
 }
 
-ensure_slot_exists() {
+ensure_slot_ready() {
   local slot="$1"
+  local outputs_json
+
   if slot_exists "$slot"; then
-    return 0
+    outputs_json="$(slot_output_json "$slot")"
+    if slot_has_required_outputs "$outputs_json"; then
+      return 0
+    fi
+
+    echo "Slot ${slot} state exists but is missing required outputs. Reconciling stack..."
+  else
+    echo "Slot ${slot} has no state yet. Creating baseline stack..."
   fi
 
-  echo "Slot ${slot} has no state yet. Creating baseline stack..."
   run_terragrunt "$slot" apply -auto-approve -lock-timeout=5m >/dev/null
+
+  outputs_json="$(slot_output_json "$slot")"
+  if ! slot_has_required_outputs "$outputs_json"; then
+    echo "Slot ${slot} outputs are still incomplete after apply. Aborting rollout." >&2
+    exit 1
+  fi
 }
 
 ensure_transversal_exists() {
@@ -203,6 +249,10 @@ set_alb_listener_weights() {
   local canary_weight="$4"
   local primary_weight=$((100 - canary_weight))
 
+  require_valid_arn "listener ARN" "$listener_arn"
+  require_valid_arn "primary target group ARN" "$primary_tg_arn"
+  require_valid_arn "canary target group ARN" "$canary_tg_arn"
+
   local actions_json
   actions_json="$(jq -cn \
     --arg primary_tg "$primary_tg_arn" \
@@ -229,6 +279,9 @@ set_listener_single_target() {
   local listener_arn="$1"
   local tg_arn="$2"
   local actions_json
+
+  require_valid_arn "listener ARN" "$listener_arn"
+  require_valid_arn "target group ARN" "$tg_arn"
 
   actions_json="$(jq -cn --arg tg "$tg_arn" '[{Type:"forward", TargetGroupArn:$tg}]')"
 
@@ -277,6 +330,7 @@ health_check_slot() {
   local slot="$1"
   local tg_arn
   tg_arn="$(slot_target_group_arn "$slot")"
+  require_valid_arn "target group ARN for slot ${slot}" "$tg_arn"
 
   local states
   states="$(aws elbv2 describe-target-health \
@@ -304,8 +358,8 @@ start_rollout() {
   active_slot="$(get_active_slot)"
   inactive_slot="$(opposite_slot "$active_slot")"
 
-  ensure_slot_exists "$active_slot"
-  run_terragrunt "$inactive_slot" apply -auto-approve -lock-timeout=5m >/dev/null
+  ensure_slot_ready "$active_slot"
+  ensure_slot_ready "$inactive_slot"
 
   ingress_listener="$(ingress_listener_arn)"
   active_tg="$(slot_target_group_arn "$active_slot")"
@@ -360,6 +414,10 @@ advance_rollout() {
     return 0
   fi
 
+  require_valid_arn "rollout listener ARN" "$ingress_listener"
+  require_valid_arn "rollout active target group ARN" "$active_tg"
+  require_valid_arn "rollout inactive target group ARN" "$inactive_tg"
+
   if ! health_check_slot "$inactive_slot"; then
     echo "Canary health check failed. Rolling back traffic to ${active_slot}."
     set_listener_single_target "$ingress_listener" "$active_tg"
@@ -402,7 +460,7 @@ abort_rollout() {
   echo "Aborting canary rollout and restoring main as sole active slot."
 
   ensure_transversal_exists
-  ensure_slot_exists "main"
+  ensure_slot_ready "main"
 
   local listener_arn main_tg
   listener_arn="$(ingress_listener_arn)"
