@@ -37,12 +37,20 @@ resource "aws_ecs_task_definition" "kong" {
     name      = "kong"
     image     = "kong:latest"
     essential = true
-    portMappings = [{
-      containerPort = 8000
-      hostPort      = 8000
-    }]
+    portMappings = [
+      {
+        containerPort = 8000
+        hostPort      = 8000
+      },
+      {
+        containerPort = 8100
+        hostPort      = 8100
+      }
+    ]
     environment = [
       { name = "KONG_DATABASE", value = "off" }, # Kong en modo DB-less
+      # Expose a dedicated status endpoint for ALB target-group health checks.
+      { name = "KONG_STATUS_LISTEN", value = "0.0.0.0:8100" },
       { name = "KONG_PROXY_ACCESS_LOG", value = "/dev/stdout" },
       { name = "KONG_ADMIN_ACCESS_LOG", value = "/dev/stdout" },
       { name = "KONG_PROXY_ERROR_LOG", value = "/dev/stderr" },
@@ -60,11 +68,12 @@ resource "aws_ecs_task_definition" "kong" {
 }
 
 resource "aws_ecs_service" "kong" {
-  name            = "srv-kong-${var.environment}"
-  cluster         = aws_ecs_cluster.main.id
-  task_definition = aws_ecs_task_definition.kong.arn
-  desired_count   = 2
-  launch_type     = "FARGATE"
+  name                              = "srv-kong-${var.environment}"
+  cluster                           = aws_ecs_cluster.main.id
+  task_definition                   = aws_ecs_task_definition.kong.arn
+  desired_count                     = 2
+  launch_type                       = "FARGATE"
+  health_check_grace_period_seconds = 120
 
   network_configuration {
     subnets          = var.private_subnets
