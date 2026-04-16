@@ -47,3 +47,9 @@ variable "shared_alb_security_group_id" {
   default     = null
 }
 
+variable "shared_http_listener_arn" {
+  description = "ARN del listener HTTP del ALB compartido (requerido cuando ingress_mode=shared)."
+  type        = string
+  default     = null
+}
+

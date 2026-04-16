@@ -1,5 +1,10 @@
 locals {
   use_dedicated_ingress = var.ingress_mode == "dedicated"
+  use_shared_ingress    = var.ingress_mode == "shared"
+  shared_listener_rule_priority = (
+    var.environment == "main" ? 200 :
+    var.environment == "canary" ? 201 : null
+  )
 }
 
 resource "aws_security_group" "alb" {
@@ -57,5 +62,35 @@ resource "aws_lb_listener" "http" {
   default_action {
     type             = "forward"
     target_group_arn = aws_lb_target_group.kong.arn
+  }
+}
+
+resource "aws_lb_listener_rule" "shared_kong_bootstrap" {
+  count        = local.use_shared_ingress ? 1 : 0
+  listener_arn = var.shared_http_listener_arn
+  priority     = local.shared_listener_rule_priority
+
+  action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.kong.arn
+  }
+
+  # This rule exists only to keep the target group attached to the shared ALB.
+  # The host value is intentionally non-routable for normal client traffic.
+  condition {
+    host_header {
+      values = ["slot-${var.environment}.internal.invalid"]
+    }
+  }
+
+  lifecycle {
+    precondition {
+      condition     = var.shared_http_listener_arn != null
+      error_message = "shared_http_listener_arn es requerido cuando ingress_mode = shared."
+    }
+    precondition {
+      condition     = local.shared_listener_rule_priority != null
+      error_message = "En ingress_mode = shared, environment debe ser 'main' o 'canary'."
+    }
   }
 }

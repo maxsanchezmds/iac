@@ -15,6 +15,7 @@ dependency "transversal" {
     public_subnets        = ["subnet-00000000000000003", "subnet-00000000000000004"]
     vpc_cidr_block        = "10.0.0.0/16"
     alb_security_group_id = "sg-00000000000000000"
+    http_listener_arn     = "arn:aws:elasticloadbalancing:us-east-1:000000000000:listener/app/alb-smartlogix-transversal/0000000000000000/0000000000000000"
   }
   mock_outputs_allowed_terraform_commands = ["init", "validate", "plan"]
 }
@@ -26,4 +27,5 @@ inputs = {
   shared_public_subnets        = dependency.transversal.outputs.public_subnets
   shared_vpc_cidr_block        = dependency.transversal.outputs.vpc_cidr_block
   shared_alb_security_group_id = dependency.transversal.outputs.alb_security_group_id
+  shared_http_listener_arn     = dependency.transversal.outputs.http_listener_arn
 }
