@@ -7,6 +7,16 @@ ACTIVE_SLOT_PARAM="${ACTIVE_SLOT_PARAM:-/smartlogix/deploy/active_slot}"
 ROLLOUT_STATE_PARAM="${ROLLOUT_STATE_PARAM:-/smartlogix/deploy/canary_rollout_state}"
 ROLLOUT_INTERVAL_SECONDS="${ROLLOUT_INTERVAL_SECONDS:-17280}" # 24h / 5 intervals
 CANARY_MIN_HEALTHY_TARGETS="${CANARY_MIN_HEALTHY_TARGETS:-1}"
+REQUIRED_TRANSVERSAL_OUTPUTS=(
+  "vpc_id"
+  "private_subnets"
+  "public_subnets"
+  "vpc_cidr_block"
+  "alb_security_group_id"
+  "http_listener_arn"
+  "alb_dns_name"
+  "alb_zone_id"
+)
 
 require_cmd() {
   local cmd="$1"
@@ -114,6 +124,30 @@ transversal_output_json() {
   (cd "${ROOT_DIR}/${TRANSVERSAL_DIR}" && terragrunt output -json)
 }
 
+transversal_has_required_outputs() {
+  local outputs_json="$1"
+
+  local key
+  for key in "${REQUIRED_TRANSVERSAL_OUTPUTS[@]}"; do
+    if ! jq -e --arg k "$key" '
+      has($k) and
+      .[$k] != null and
+      .[$k].value != null and
+      (
+        (.[$k].value | type) != "string" or
+        (.[$k].value | length) > 0
+      ) and
+      (
+        (.[$k].value | type) != "array" or
+        (.[$k].value | length) > 0
+      )
+    ' >/dev/null <<<"$outputs_json"; then
+      echo "Missing or empty required transversal output: ${key}" >&2
+      return 1
+    fi
+  done
+}
+
 ingress_listener_arn() {
   transversal_output_json | jq -r '.http_listener_arn.value'
 }
@@ -141,12 +175,25 @@ ensure_slot_exists() {
 }
 
 ensure_transversal_exists() {
+  local outputs_json
   if transversal_exists; then
-    return 0
+    outputs_json="$(transversal_output_json)"
+    if transversal_has_required_outputs "$outputs_json"; then
+      return 0
+    fi
+
+    echo "Transversal state exists but is missing required outputs. Reconciling stack..."
+  else
+    echo "Transversal stack has no state yet. Creating shared networking and ingress..."
   fi
 
-  echo "Transversal stack has no state yet. Creating shared networking and ingress..."
   run_terragrunt_transversal apply -auto-approve -lock-timeout=5m >/dev/null
+
+  outputs_json="$(transversal_output_json)"
+  if ! transversal_has_required_outputs "$outputs_json"; then
+    echo "Transversal outputs are still incomplete after apply. Aborting rollout." >&2
+    exit 1
+  fi
 }
 
 set_alb_listener_weights() {
