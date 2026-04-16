@@ -4,7 +4,7 @@ on:
   push:
     branches: ["master"]
   schedule:
-    - cron: "*/30 * * * *"
+    - cron: "*/5 * * * *"
   workflow_dispatch:
     inputs:
       mode:
@@ -26,6 +26,7 @@ env:
   AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_ACCESS_KEY_SECRET }}
   TF_INPUT: "false"
   TG_NON_INTERACTIVE: "true"
+  ROLLOUT_INTERVAL_SECONDS: "300"
   ROUTE53_HOSTED_ZONE_ID: ${{ secrets.ROUTE53_HOSTED_ZONE_ID }}
   APP_FQDN: ${{ secrets.APP_FQDN }}
 
