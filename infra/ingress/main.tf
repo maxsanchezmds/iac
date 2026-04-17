@@ -17,7 +17,7 @@ resource "aws_security_group" "ingress_alb" {
   }
 
   lifecycle {
-    prevent_destroy = true
+    prevent_destroy = false
   }
 }
 
@@ -29,7 +29,7 @@ resource "aws_lb" "ingress" {
   subnets            = var.public_subnets
 
   lifecycle {
-    prevent_destroy = true
+    prevent_destroy = false
   }
 }
 
@@ -49,6 +49,6 @@ resource "aws_lb_listener" "http" {
   }
 
   lifecycle {
-    prevent_destroy = true
+    prevent_destroy = false
   }
 }
