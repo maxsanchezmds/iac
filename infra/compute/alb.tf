@@ -6,7 +6,7 @@ locals {
     var.environment == "canary" ? 201 : null
   )
 }
-
+#ejemplo
 resource "aws_security_group" "alb" {
   count  = local.use_dedicated_ingress ? 1 : 0
   name   = "alb-sg-smartlogix-${var.environment}"
