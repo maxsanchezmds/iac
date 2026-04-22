@@ -1,6 +1,6 @@
 locals {
-  use_dedicated_ingress = var.ingress_mode == "dedicated"
-  use_shared_ingress    = var.ingress_mode == "shared"
+  use_dedicated_ingress         = var.ingress_mode == "dedicated"
+  use_shared_ingress            = var.ingress_mode == "shared"
   shared_listener_rule_priority = var.environment == "main" ? 200 : null
 }
 #ejemplo
