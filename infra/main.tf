@@ -6,7 +6,7 @@ locals {
     "notificaciones"
   ]
 
-  use_shared_ingress = contains(["main", "canary"], var.environment)
+  use_shared_ingress = var.environment == "main"
 
   vpc_id = local.use_shared_ingress ? var.shared_vpc_id : module.networking[0].vpc_id
 
@@ -51,6 +51,8 @@ module "compute" {
   microservicios               = local.microservicios
   ecs_execution_role_arn       = module.security.ecs_execution_role_arn
   ecs_task_role_arn            = module.security.ecs_task_role_arn
+  codedeploy_service_role_arn  = module.security.codedeploy_service_role_arn
+  enable_kong_codedeploy       = var.environment == "main"
   db_parameter_arns            = module.security.ssm_parameter_arns
 }
 

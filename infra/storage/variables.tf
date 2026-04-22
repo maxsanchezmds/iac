@@ -1,5 +1,5 @@
 variable "environment" {
-  description = "Entorno de despliegue (main, canary o pr-<numero>)"
+  description = "Entorno de despliegue (main o pr-<numero>)"
   type        = string
 }
 

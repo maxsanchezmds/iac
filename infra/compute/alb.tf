@@ -1,10 +1,7 @@
 locals {
   use_dedicated_ingress = var.ingress_mode == "dedicated"
   use_shared_ingress    = var.ingress_mode == "shared"
-  shared_listener_rule_priority = (
-    var.environment == "main" ? 200 :
-    var.environment == "canary" ? 201 : null
-  )
+  shared_listener_rule_priority = var.environment == "main" ? 200 : null
 }
 #ejemplo
 resource "aws_security_group" "alb" {
@@ -36,8 +33,25 @@ resource "aws_lb" "main" {
   subnets            = var.public_subnets
 }
 
-resource "aws_lb_target_group" "kong" {
-  name        = "tg-kong-${var.environment}"
+resource "aws_lb_target_group" "kong_blue" {
+  name        = "tg-kongb-${var.environment}"
+  port        = 8000
+  protocol    = "HTTP"
+  vpc_id      = var.vpc_id
+  target_type = "ip"
+
+  health_check {
+    path                = "/"
+    healthy_threshold   = 3
+    unhealthy_threshold = 3
+    timeout             = 5
+    interval            = 30
+    matcher             = "200-499"
+  }
+}
+
+resource "aws_lb_target_group" "kong_green" {
+  name        = "tg-kongg-${var.environment}"
   port        = 8000
   protocol    = "HTTP"
   vpc_id      = var.vpc_id
@@ -61,7 +75,7 @@ resource "aws_lb_listener" "http" {
 
   default_action {
     type             = "forward"
-    target_group_arn = aws_lb_target_group.kong.arn
+    target_group_arn = aws_lb_target_group.kong_blue.arn
   }
 }
 
@@ -72,7 +86,7 @@ resource "aws_lb_listener_rule" "shared_kong_bootstrap" {
 
   action {
     type             = "forward"
-    target_group_arn = aws_lb_target_group.kong.arn
+    target_group_arn = aws_lb_target_group.kong_blue.arn
   }
 
   # This rule exists only to keep the target group attached to the shared ALB.
@@ -90,7 +104,7 @@ resource "aws_lb_listener_rule" "shared_kong_bootstrap" {
     }
     precondition {
       condition     = local.shared_listener_rule_priority != null
-      error_message = "En ingress_mode = shared, environment debe ser 'main' o 'canary'."
+      error_message = "En ingress_mode = shared, environment debe ser 'main'."
     }
   }
 }

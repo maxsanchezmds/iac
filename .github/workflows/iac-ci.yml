@@ -1,0 +1,39 @@
+name: "IaC CI"
+
+on:
+  pull_request:
+    branches: ["master", "main"]
+  push:
+    branches: ["master", "main"]
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Setup Terragrunt
+        uses: gruntwork-io/terragrunt-action@53dbdc2c3d43e82bf3bae10b734a968196442bec # v3.2.0
+        with:
+          tg_version: 1.0.1
+          tf_path: terraform
+
+      - name: Terraform Format and Validate
+        run: |
+          terraform -chdir=infra fmt -check -recursive
+          terraform -chdir=infra init -backend=false
+          terraform -chdir=infra validate
+
+      - name: Terragrunt Validate Main
+        working-directory: environments/main
+        run: |
+          terragrunt init -reconfigure
+          terragrunt validate

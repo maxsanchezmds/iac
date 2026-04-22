@@ -18,14 +18,58 @@ output "ecs_cluster_id" {
   value = aws_ecs_cluster.main.id
 }
 
+output "ecs_cluster_name" {
+  value = aws_ecs_cluster.main.name
+}
+
+output "kong_service_name" {
+  value = aws_ecs_service.kong.name
+}
+
+output "kong_task_definition_family" {
+  value = aws_ecs_task_definition.kong.family
+}
+
+output "kong_container_name" {
+  value = "kong"
+}
+
+output "kong_container_port" {
+  value = 8000
+}
+
+output "kong_listener_arn" {
+  value = local.kong_listener_arn
+}
+
 output "cloudmap_namespace_id" {
   value = aws_service_discovery_private_dns_namespace.internal.id
 }
 
+output "cloudmap_namespace_name" {
+  value = local.service_discovery_namespace_name
+}
+
 output "target_group_kong_arn" {
-  value = aws_lb_target_group.kong.arn
+  value = aws_lb_target_group.kong_blue.arn
+}
+
+output "target_group_kong_blue_arn" {
+  value = aws_lb_target_group.kong_blue.arn
+}
+
+output "target_group_kong_green_arn" {
+  value = aws_lb_target_group.kong_green.arn
 }
 
 output "ecs_tasks_sg_id" {
   value = aws_security_group.ecs_tasks.id
+}
+
+output "kong_codedeploy_app_name" {
+  value = var.enable_kong_codedeploy ? aws_codedeploy_app.kong[0].name : null
+}
+
+output "kong_codedeploy_deployment_group_name" {
+  value = var.enable_kong_codedeploy ? aws_codedeploy_deployment_group.kong[0].deployment_group_name : null
 }
