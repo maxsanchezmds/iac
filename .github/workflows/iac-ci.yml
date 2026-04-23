@@ -42,5 +42,5 @@ jobs:
       - name: Terragrunt Validate Main
         working-directory: environments/main
         run: |
-          terragrunt init -reconfigure
+          terragrunt init -reconfigure -backend=false --non-interactive
           terragrunt validate
