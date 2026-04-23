@@ -60,9 +60,9 @@ variable "enable_kong_codedeploy" {
 }
 
 variable "codedeploy_deployment_config_name" {
-  description = "CodeDeploy deployment config used for Kong deployments."
+  description = "Custom CodeDeploy ECS deployment config name (50% canary for 5 minutes)."
   type        = string
-  default     = "CodeDeployDefault.ECSCanary10Percent5Minutes"
+  default     = "codedeploy-kong-canary50-5m"
 }
 
 variable "codedeploy_alarm_names" {
