@@ -4,12 +4,27 @@ resource "aws_codedeploy_app" "kong" {
   compute_platform = "ECS"
 }
 
+resource "aws_codedeploy_deployment_config" "kong" {
+  count                  = var.enable_kong_codedeploy ? 1 : 0
+  deployment_config_name = var.codedeploy_deployment_config_name
+  compute_platform       = "ECS"
+
+  traffic_routing_config {
+    type = "TimeBasedCanary"
+
+    time_based_canary {
+      interval   = 5
+      percentage = 50
+    }
+  }
+}
+
 resource "aws_codedeploy_deployment_group" "kong" {
   count                  = var.enable_kong_codedeploy ? 1 : 0
   app_name               = aws_codedeploy_app.kong[0].name
   deployment_group_name  = "dg-kong-${var.environment}"
   service_role_arn       = var.codedeploy_service_role_arn
-  deployment_config_name = var.codedeploy_deployment_config_name
+  deployment_config_name = aws_codedeploy_deployment_config.kong[0].deployment_config_name
 
   deployment_style {
     deployment_option = "WITH_TRAFFIC_CONTROL"
