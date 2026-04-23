@@ -28,6 +28,7 @@ resource "aws_service_discovery_private_dns_namespace" "internal" {
 
 locals {
   alb_security_group_id = var.ingress_mode == "dedicated" ? aws_security_group.alb[0].id : var.shared_alb_security_group_id
+  kong_listener_arn     = var.ingress_mode == "dedicated" ? aws_lb_listener.http[0].arn : var.shared_http_listener_arn
   # Shared ingress slots run in the same VPC, so each slot needs a distinct namespace domain.
   service_discovery_namespace_name = var.ingress_mode == "shared" ? "smartlogix-${var.environment}.local" : "smartlogix.local"
 }

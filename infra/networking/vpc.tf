@@ -8,5 +8,5 @@ module "vpc" {
   enable_dns_hostnames = true
   enable_dns_support   = true
   enable_nat_gateway   = true
-  single_nat_gateway   = !contains(["main", "canary"], var.environment)
+  single_nat_gateway   = var.environment != "main"
 }

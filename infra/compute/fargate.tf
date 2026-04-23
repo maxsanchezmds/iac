@@ -35,7 +35,7 @@ resource "aws_ecs_task_definition" "kong" {
 
   container_definitions = jsonencode([{
     name      = "kong"
-    image     = "kong:latest"
+    image     = var.kong_image
     essential = true
     portMappings = [{
       containerPort = 8000
@@ -74,7 +74,7 @@ resource "aws_ecs_service" "kong" {
   }
 
   load_balancer {
-    target_group_arn = aws_lb_target_group.kong.arn
+    target_group_arn = aws_lb_target_group.kong_blue.arn
     container_name   = "kong"
     container_port   = 8000
   }
@@ -90,6 +90,10 @@ resource "aws_ecs_service" "kong" {
 
   lifecycle {
     ignore_changes = [task_definition, desired_count]
+  }
+
+  deployment_controller {
+    type = var.enable_kong_codedeploy ? "CODE_DEPLOY" : "ECS"
   }
 }
 

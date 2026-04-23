@@ -37,8 +37,38 @@ variable "ecs_task_role_arn" {
   type = string
 }
 
+variable "codedeploy_service_role_arn" {
+  description = "IAM role ARN used by CodeDeploy ECS blue/green deployments."
+  type        = string
+  default     = null
+}
+
 variable "db_parameter_arns" {
   type = map(string)
+}
+
+variable "kong_image" {
+  description = "Container image for Kong."
+  type        = string
+  default     = "kong:3.7"
+}
+
+variable "enable_kong_codedeploy" {
+  description = "Enable CodeDeploy blue/green for the Kong ECS service."
+  type        = bool
+  default     = false
+}
+
+variable "codedeploy_deployment_config_name" {
+  description = "CodeDeploy deployment config used for Kong deployments."
+  type        = string
+  default     = "CodeDeployDefault.ECSCanary10Percent5Minutes"
+}
+
+variable "codedeploy_alarm_names" {
+  description = "CloudWatch alarm names that trigger automatic rollback."
+  type        = list(string)
+  default     = []
 }
 
 variable "shared_alb_security_group_id" {

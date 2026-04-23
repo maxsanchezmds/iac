@@ -19,10 +19,10 @@ remote_state {
     if_exists = "overwrite_terragrunt"
   }
   config = {
-    bucket         = "s3-tf-state-smartlogix-2026"
-    key            = "${path_relative_to_include()}/terraform.tfstate"
-    region         = local.aws_region
-    encrypt        = true
-    dynamodb_table = "dynamo-tfstate-smartlogix-2026"
+    bucket       = "s3-tf-state-smartlogix-2026"
+    key          = "${path_relative_to_include()}/terraform.tfstate"
+    region       = local.aws_region
+    encrypt      = true
+    use_lockfile = true
   }
 }

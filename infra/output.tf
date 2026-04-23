@@ -25,3 +25,23 @@ output "target_group_kong_arn" {
 output "ecs_cluster_id" {
   value = module.compute.ecs_cluster_id
 }
+
+output "ecs_cluster_name" {
+  value = module.compute.ecs_cluster_name
+}
+
+output "kong_service_name" {
+  value = module.compute.kong_service_name
+}
+
+output "kong_codedeploy_app_name" {
+  value = module.compute.kong_codedeploy_app_name
+}
+
+output "kong_codedeploy_deployment_group_name" {
+  value = module.compute.kong_codedeploy_deployment_group_name
+}
+
+output "kong_ecr_repository_url" {
+  value = module.storage.kong_repository_url
+}

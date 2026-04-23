@@ -14,3 +14,7 @@ output "ecs_task_role_arn" {
 output "ssm_parameter_arns" {
   value = { for ms in var.microservicios : ms => aws_ssm_parameter.db_password[ms].arn }
 }
+
+output "codedeploy_service_role_arn" {
+  value = aws_iam_role.codedeploy_role.arn
+}
