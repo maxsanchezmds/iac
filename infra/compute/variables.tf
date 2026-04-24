@@ -43,8 +43,16 @@ variable "codedeploy_service_role_arn" {
   default     = null
 }
 
-variable "db_parameter_arns" {
-  type = map(string)
+variable "service_secret_arns" {
+  description = "ARNs de secretos SSM por microservicio y nombre de variable de entorno."
+  type        = map(map(string))
+  default     = {}
+}
+
+variable "service_environment" {
+  description = "Variables de entorno no sensibles por microservicio."
+  type        = map(map(string))
+  default     = {}
 }
 
 variable "kong_image" {

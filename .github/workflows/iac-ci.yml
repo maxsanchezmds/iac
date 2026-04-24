@@ -41,6 +41,8 @@ jobs:
 
       - name: Terragrunt Validate Main
         working-directory: environments/main
+        env:
+          TF_VAR_mongodb_connection_strings: '{"inventario":"${{ secrets.MONGODB_INVENTARIO_URI }}"}'
         run: |
           terragrunt init -reconfigure -backend=false --non-interactive
           terragrunt validate

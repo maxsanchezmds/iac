@@ -117,15 +117,23 @@ resource "aws_ecs_task_definition" "microservicios" {
       hostPort      = 3000
     }]
     secrets = [
-      {
-        name      = "DATABASE_PASSWORD"
-        valueFrom = var.db_parameter_arns[each.key]
+      for secret_name, secret_arn in lookup(var.service_secret_arns, each.key, {}) : {
+        name      = secret_name
+        valueFrom = secret_arn
       }
     ]
-    environment = [
-      { name = "PORT", value = "3000" },
-      { name = "NODE_ENV", value = var.environment }
-    ]
+    environment = concat(
+      [
+        { name = "PORT", value = "3000" },
+        { name = "NODE_ENV", value = var.environment }
+      ],
+      [
+        for environment_name, environment_value in lookup(var.service_environment, each.key, {}) : {
+          name  = environment_name
+          value = environment_value
+        }
+      ]
+    )
     logConfiguration = {
       logDriver = "awslogs"
       options = {

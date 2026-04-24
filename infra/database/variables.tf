@@ -14,11 +14,11 @@ variable "vpc_cidr_block" {
   type = string
 }
 
-variable "microservicios" {
+variable "postgres_services" {
   type = list(string)
 }
 
-variable "db_passwords" {
+variable "postgres_passwords" {
   type      = map(string)
   sensitive = true
 }
