@@ -89,7 +89,7 @@ resource "aws_ecs_service" "kong" {
   ]
 
   lifecycle {
-    ignore_changes = [task_definition, desired_count]
+    ignore_changes = [task_definition, desired_count, load_balancer]
   }
 
   deployment_controller {
