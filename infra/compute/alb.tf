@@ -98,6 +98,11 @@ resource "aws_lb_listener_rule" "shared_kong_bootstrap" {
   }
 
   lifecycle {
+    # CodeDeploy owns the production route action after the first blue/green
+    # deployment. The rule must keep its host condition and priority, but the
+    # active target group legitimately alternates between blue and green.
+    ignore_changes = [action]
+
     precondition {
       condition     = var.shared_http_listener_arn != null
       error_message = "shared_http_listener_arn es requerido cuando ingress_mode = shared."
