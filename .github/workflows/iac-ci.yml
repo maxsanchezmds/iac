@@ -47,7 +47,7 @@ jobs:
       - name: Terragrunt Validate Transversal
         working-directory: environments/transversal
         run: |
-          terragrunt --terragrunt-non-interactive init -reconfigure -backend=false
+          terragrunt --non-interactive init -reconfigure -backend=false
           terragrunt validate
 
       - name: Terragrunt Validate Main
@@ -56,5 +56,5 @@ jobs:
           TG_USE_MOCK_DEPENDENCY: "true"
           TF_VAR_mongodb_connection_strings: '{"inventario":"mongodb+srv://validation:validation@validation.mongodb.net/smartlogix"}'
         run: |
-          terragrunt --terragrunt-non-interactive init -reconfigure -backend=false
+          terragrunt --non-interactive init -reconfigure -backend=false
           terragrunt validate
