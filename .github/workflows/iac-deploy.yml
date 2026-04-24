@@ -1,0 +1,78 @@
+name: "IaC Deploy"
+
+on:
+  push:
+    branches: ["master"]
+
+permissions:
+  contents: read
+
+env:
+  AWS_REGION: us-east-1
+  TF_INPUT: "false"
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    concurrency:
+      group: iac-master-apply
+      cancel-in-progress: false
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Setup Terragrunt
+        uses: gruntwork-io/terragrunt-action@53dbdc2c3d43e82bf3bae10b734a968196442bec # v3.2.0
+        with:
+          tg_version: 1.0.1
+          tf_path: terraform
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY }}
+          aws-secret-access-key: ${{ secrets.AWS_ACCESS_KEY_SECRET }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Verify required deployment secrets
+        env:
+          MONGODB_INVENTARIO_URI: ${{ secrets.MONGODB_INVENTARIO_URI }}
+        run: |
+          if [ -z "$MONGODB_INVENTARIO_URI" ]; then
+            echo "MONGODB_INVENTARIO_URI repository secret is required for main apply." >&2
+            exit 1
+          fi
+
+      - name: Validate Terraform configuration
+        run: |
+          terraform -chdir=infra fmt -check -recursive
+          terraform -chdir=infra init -backend=false
+          terraform -chdir=infra validate
+
+      - name: Apply Transversal
+        working-directory: environments/transversal
+        run: |
+          terragrunt --terragrunt-non-interactive init -reconfigure
+          terragrunt --terragrunt-non-interactive apply -auto-approve
+
+      - name: Apply Main
+        working-directory: environments/main
+        env:
+          TG_USE_MOCK_DEPENDENCY: "false"
+          MONGODB_INVENTARIO_URI: ${{ secrets.MONGODB_INVENTARIO_URI }}
+        run: |
+          TF_VAR_mongodb_connection_strings="$(python3 <<'PY'
+          import json
+          import os
+
+          print(json.dumps({"inventario": os.environ["MONGODB_INVENTARIO_URI"]}))
+          PY
+          )"
+          export TF_VAR_mongodb_connection_strings
+          terragrunt --terragrunt-non-interactive init -reconfigure
+          terragrunt --terragrunt-non-interactive apply -auto-approve

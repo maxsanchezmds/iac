@@ -7,7 +7,7 @@ terraform {
 }
 
 locals {
-  use_mock_dependency = lower(get_env("CI", "false")) == "true"
+  use_mock_dependency = lower(get_env("TG_USE_MOCK_DEPENDENCY", "false")) == "true"
   transversal_mock_outputs = {
     vpc_id                = "vpc-00000000000000000"
     private_subnets       = ["subnet-00000000000000001", "subnet-00000000000000002"]
