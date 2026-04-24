@@ -1,3 +1,5 @@
+data "aws_partition" "current" {}
+
 resource "aws_iam_role" "ecs_execution_role" {
   name = "ecs-exec-role-smartlogix-${var.environment}"
 
@@ -30,7 +32,7 @@ resource "aws_iam_role_policy" "ecs_execution_secrets" {
         "ssm:GetParameters",
         "ssm:GetParameter"
       ]
-      Resource = [for ms in var.microservicios : aws_ssm_parameter.db_password[ms].arn]
+      Resource = "arn:${data.aws_partition.current.partition}:ssm:*:*:parameter/smartlogix/${var.environment}/*/*"
     }]
   })
 }
