@@ -45,3 +45,11 @@ output "kong_codedeploy_deployment_group_name" {
 output "kong_ecr_repository_url" {
   value = module.storage.kong_repository_url
 }
+
+output "pedidos_ecr_repository_url" {
+  value = try(module.storage.microservice_repository_urls["pedidos"], null)
+}
+
+output "pedidos_service_name" {
+  value = try(module.compute.microservice_service_names["pedidos"], null)
+}

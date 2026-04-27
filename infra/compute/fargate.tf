@@ -24,6 +24,20 @@ resource "aws_service_discovery_service" "microservicios" {
   }
 }
 
+resource "aws_service_discovery_service" "microservicios_canary" {
+  for_each = toset(var.microservicios)
+  name     = "${each.key}-canary"
+
+  dns_config {
+    namespace_id = aws_service_discovery_private_dns_namespace.internal.id
+    dns_records {
+      ttl  = 10
+      type = "A"
+    }
+    routing_policy = "MULTIVALUE"
+  }
+}
+
 resource "aws_ecs_task_definition" "kong" {
   family                   = "kong-${var.environment}"
   network_mode             = "awsvpc"
