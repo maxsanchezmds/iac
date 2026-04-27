@@ -73,3 +73,27 @@ output "kong_codedeploy_app_name" {
 output "kong_codedeploy_deployment_group_name" {
   value = var.enable_kong_codedeploy ? aws_codedeploy_deployment_group.kong[0].deployment_group_name : null
 }
+
+output "microservice_service_names" {
+  value = { for service, ecs_service in aws_ecs_service.microservicios : service => ecs_service.name }
+}
+
+output "microservice_task_definition_families" {
+  value = { for service, task_definition in aws_ecs_task_definition.microservicios : service => task_definition.family }
+}
+
+output "microservice_container_names" {
+  value = { for service in var.microservicios : service => service }
+}
+
+output "microservice_container_ports" {
+  value = { for service in var.microservicios : service => 3000 }
+}
+
+output "microservice_discovery_service_arns" {
+  value = { for service, discovery_service in aws_service_discovery_service.microservicios : service => discovery_service.arn }
+}
+
+output "microservice_canary_discovery_service_arns" {
+  value = { for service, discovery_service in aws_service_discovery_service.microservicios_canary : service => discovery_service.arn }
+}
