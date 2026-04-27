@@ -22,7 +22,9 @@ locals {
   }
   service_environment = {
     for ms in local.microservicios : ms => merge(
-      contains(keys(module.database.postgres_connection_environment), ms) ? module.database.postgres_connection_environment[ms] : {}
+      contains(keys(module.database.postgres_connection_environment), ms) ? merge(module.database.postgres_connection_environment[ms], {
+        DATABASE_SSL = "true"
+      }) : {}
     )
   }
 
