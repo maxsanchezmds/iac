@@ -97,9 +97,9 @@ module "client_vpn" {
   vpc_id                            = local.vpc_id
   vpc_cidr_block                    = local.vpc_cidr_block
   private_subnets                   = local.private_subnets
-  client_cidr_block                 = var.client_vpn_client_cidr_block
-  server_certificate_arn            = var.client_vpn_server_certificate_arn
-  client_root_certificate_chain_arn = var.client_vpn_root_certificate_arn
+  client_cidr_block                 = trimspace(var.client_vpn_client_cidr_block)
+  server_certificate_arn            = trimspace(var.client_vpn_server_certificate_arn)
+  client_root_certificate_chain_arn = trimspace(var.client_vpn_root_certificate_arn)
   authorization_target_cidr         = local.vpc_cidr_block
   cloudwatch_log_retention_days     = var.client_vpn_cloudwatch_log_retention_days
 }

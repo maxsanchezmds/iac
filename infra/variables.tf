@@ -109,7 +109,7 @@ variable "client_vpn_client_cidr_block" {
   default     = "172.16.0.0/22"
 
   validation {
-    condition     = can(cidrhost(var.client_vpn_client_cidr_block, 0))
+    condition     = can(cidrhost(trimspace(var.client_vpn_client_cidr_block), 0))
     error_message = "client_vpn_client_cidr_block debe ser un CIDR valido."
   }
 }
