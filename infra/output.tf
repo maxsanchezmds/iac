@@ -53,3 +53,15 @@ output "pedidos_ecr_repository_url" {
 output "pedidos_service_name" {
   value = try(module.compute.microservice_service_names["pedidos"], null)
 }
+
+output "client_vpn_endpoint_id" {
+  value = try(module.client_vpn[0].endpoint_id, null)
+}
+
+output "client_vpn_security_group_id" {
+  value = try(module.client_vpn[0].security_group_id, null)
+}
+
+output "client_vpn_log_group_name" {
+  value = try(module.client_vpn[0].cloudwatch_log_group_name, null)
+}

@@ -118,3 +118,38 @@ variable "mongodb_connection_strings" {
     error_message = "Cada MongoDB connection string debe usar mongodb:// o mongodb+srv:// e incluir credenciales usuario:password@host."
   }
 }
+
+variable "client_vpn_enabled" {
+  description = "Habilita AWS Client VPN para acceso privado de desarrolladores a recursos de la VPC."
+  type        = bool
+  default     = false
+}
+
+variable "client_vpn_client_cidr_block" {
+  description = "CIDR asignado a clientes VPN. No debe solaparse con la VPC ni con redes locales de los devs."
+  type        = string
+  default     = "172.16.0.0/22"
+
+  validation {
+    condition     = can(cidrhost(var.client_vpn_client_cidr_block, 0))
+    error_message = "client_vpn_client_cidr_block debe ser un CIDR valido."
+  }
+}
+
+variable "client_vpn_server_certificate_arn" {
+  description = "ARN ACM del certificado de servidor para AWS Client VPN. Requerido si client_vpn_enabled=true."
+  type        = string
+  default     = null
+}
+
+variable "client_vpn_root_certificate_arn" {
+  description = "ARN ACM de la CA raiz que firma certificados de cliente. Requerido si client_vpn_enabled=true."
+  type        = string
+  default     = null
+}
+
+variable "client_vpn_cloudwatch_log_retention_days" {
+  description = "Dias de retencion para logs de conexion de AWS Client VPN."
+  type        = number
+  default     = 30
+}
