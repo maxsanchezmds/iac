@@ -89,28 +89,6 @@ variable "mongodb_connection_strings" {
   sensitive   = true
 
   validation {
-    condition = length(setsubtract(
-      toset(keys(nonsensitive(var.mongodb_connection_strings))),
-      toset([
-        for service_name, config in var.microservice_data_stores :
-        service_name if contains(config.data_stores, "mongodb")
-      ])
-    )) == 0
-    error_message = "mongodb_connection_strings solo puede incluir microservicios declarados con data_store mongodb."
-  }
-
-  validation {
-    condition = length(setsubtract(
-      toset([
-        for service_name, config in var.microservice_data_stores :
-        service_name if contains(config.data_stores, "mongodb")
-      ]),
-      toset(keys(nonsensitive(var.mongodb_connection_strings)))
-    )) == 0
-    error_message = "Cada microservicio con data_store mongodb debe tener una connection string en mongodb_connection_strings."
-  }
-
-  validation {
     condition = alltrue([
       for connection_string in values(nonsensitive(var.mongodb_connection_strings)) :
       can(regex("^mongodb(\\+srv)?://[^\\s:@/]+:[^\\s@/]+@[^\\s/?#]+(/[^\\s?#]*)?(\\?[^\\s#]*)?(#[^\\s]*)?$", connection_string))
