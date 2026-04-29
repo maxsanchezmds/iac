@@ -39,6 +39,25 @@ locals {
   vpc_cidr_block = local.use_shared_ingress ? var.shared_vpc_cidr_block : module.networking[0].vpc_cidr_block
 }
 
+resource "terraform_data" "client_vpn_certificates_required" {
+  input = var.client_vpn_enabled
+
+  lifecycle {
+    precondition {
+      condition = (
+        !var.client_vpn_enabled ||
+        (
+          var.client_vpn_server_certificate_arn != null &&
+          var.client_vpn_root_certificate_arn != null &&
+          trimspace(var.client_vpn_server_certificate_arn) != "" &&
+          trimspace(var.client_vpn_root_certificate_arn) != ""
+        )
+      )
+      error_message = "client_vpn_server_certificate_arn y client_vpn_root_certificate_arn son requeridos cuando client_vpn_enabled=true."
+    }
+  }
+}
+
 module "security" {
   source                     = "./security"
   environment                = var.environment
@@ -53,14 +72,30 @@ module "networking" {
   environment = var.environment
 }
 
+module "client_vpn" {
+  count  = var.client_vpn_enabled ? 1 : 0
+  source = "./client_vpn"
+
+  environment                       = var.environment
+  vpc_id                            = local.vpc_id
+  vpc_cidr_block                    = local.vpc_cidr_block
+  private_subnets                   = local.private_subnets
+  client_cidr_block                 = var.client_vpn_client_cidr_block
+  server_certificate_arn            = var.client_vpn_server_certificate_arn
+  client_root_certificate_chain_arn = var.client_vpn_root_certificate_arn
+  authorization_target_cidr         = local.vpc_cidr_block
+  cloudwatch_log_retention_days     = var.client_vpn_cloudwatch_log_retention_days
+}
+
 module "database" {
-  source             = "./database"
-  environment        = var.environment
-  vpc_id             = local.vpc_id
-  private_subnets    = local.private_subnets
-  vpc_cidr_block     = local.vpc_cidr_block
-  postgres_services  = local.postgres_microservicios
-  postgres_passwords = module.security.postgres_db_passwords
+  source                              = "./database"
+  environment                         = var.environment
+  vpc_id                              = local.vpc_id
+  private_subnets                     = local.private_subnets
+  vpc_cidr_block                      = local.vpc_cidr_block
+  postgres_services                   = local.postgres_microservicios
+  postgres_passwords                  = module.security.postgres_db_passwords
+  postgres_allowed_security_group_ids = var.client_vpn_enabled ? [module.client_vpn[0].security_group_id] : []
 }
 
 module "compute" {

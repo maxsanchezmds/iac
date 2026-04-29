@@ -1,6 +1,13 @@
 name: "IaC Deploy"
 
 on:
+  workflow_dispatch:
+    inputs:
+      apply_transversal:
+        description: "Aplicar tambien el stack transversal antes de main"
+        required: true
+        default: true
+        type: boolean
   push:
     branches: ["master"]
 
@@ -42,10 +49,20 @@ jobs:
       - name: Verify required deployment secrets
         env:
           MONGODB_INVENTARIO_URI: ${{ secrets.MONGODB_INVENTARIO_URI }}
+          CLIENT_VPN_ENABLED: ${{ vars.CLIENT_VPN_ENABLED }}
+          CLIENT_VPN_SERVER_CERTIFICATE_ARN: ${{ vars.CLIENT_VPN_SERVER_CERTIFICATE_ARN }}
+          CLIENT_VPN_ROOT_CERTIFICATE_ARN: ${{ vars.CLIENT_VPN_ROOT_CERTIFICATE_ARN }}
         run: |
           if [ -z "$MONGODB_INVENTARIO_URI" ]; then
             echo "MONGODB_INVENTARIO_URI repository secret is required for main apply." >&2
             exit 1
+          fi
+
+          if [ "$CLIENT_VPN_ENABLED" = "true" ]; then
+            if [ -z "$CLIENT_VPN_SERVER_CERTIFICATE_ARN" ] || [ -z "$CLIENT_VPN_ROOT_CERTIFICATE_ARN" ]; then
+              echo "CLIENT_VPN_SERVER_CERTIFICATE_ARN and CLIENT_VPN_ROOT_CERTIFICATE_ARN repository variables are required when CLIENT_VPN_ENABLED=true." >&2
+              exit 1
+            fi
           fi
 
       - name: Validate Terraform configuration
@@ -55,6 +72,7 @@ jobs:
           terraform -chdir=infra validate
 
       - name: Apply Transversal
+        if: github.event_name != 'workflow_dispatch' || inputs.apply_transversal
         working-directory: environments/transversal
         run: |
           terragrunt --non-interactive init -reconfigure
@@ -65,6 +83,10 @@ jobs:
         env:
           TG_USE_MOCK_DEPENDENCY: "false"
           MONGODB_INVENTARIO_URI: ${{ secrets.MONGODB_INVENTARIO_URI }}
+          CLIENT_VPN_ENABLED: ${{ vars.CLIENT_VPN_ENABLED }}
+          CLIENT_VPN_SERVER_CERTIFICATE_ARN: ${{ vars.CLIENT_VPN_SERVER_CERTIFICATE_ARN }}
+          CLIENT_VPN_ROOT_CERTIFICATE_ARN: ${{ vars.CLIENT_VPN_ROOT_CERTIFICATE_ARN }}
+          CLIENT_VPN_CLIENT_CIDR_BLOCK: ${{ vars.CLIENT_VPN_CLIENT_CIDR_BLOCK || '172.16.0.0/22' }}
         run: |
           TF_VAR_mongodb_connection_strings="$(python3 <<'PY'
           import json
