@@ -58,6 +58,23 @@ resource "terraform_data" "client_vpn_certificates_required" {
   }
 }
 
+resource "terraform_data" "mongodb_connection_strings_match_services" {
+  input = {
+    mongodb_services           = local.mongodb_microservicios
+    mongodb_connection_strings = keys(nonsensitive(var.mongodb_connection_strings))
+  }
+
+  lifecycle {
+    precondition {
+      condition = (
+        length(setsubtract(toset(keys(nonsensitive(var.mongodb_connection_strings))), toset(local.mongodb_microservicios))) == 0 &&
+        length(setsubtract(toset(local.mongodb_microservicios), toset(keys(nonsensitive(var.mongodb_connection_strings))))) == 0
+      )
+      error_message = "mongodb_connection_strings debe incluir exactamente los microservicios declarados con data_store mongodb."
+    }
+  }
+}
+
 module "security" {
   source                     = "./security"
   environment                = var.environment
