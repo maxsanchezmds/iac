@@ -140,7 +140,8 @@ module "compute" {
 }
 
 module "storage" {
-  source         = "./storage"
-  environment    = var.environment
-  microservicios = local.microservicios
+  source                  = "./storage"
+  environment             = var.environment
+  microservicios          = local.microservicios
+  sns_event_subscriptions = var.sns_event_subscriptions
 }

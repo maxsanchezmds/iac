@@ -39,4 +39,8 @@ inputs = {
   client_vpn_server_certificate_arn = get_env("CLIENT_VPN_SERVER_CERTIFICATE_ARN", "")
   client_vpn_root_certificate_arn   = get_env("CLIENT_VPN_ROOT_CERTIFICATE_ARN", "")
   client_vpn_client_cidr_block      = get_env("CLIENT_VPN_CLIENT_CIDR_BLOCK", "172.16.0.0/22")
+
+  sns_event_subscriptions = {
+    inventario = ["pedido_creado"]
+  }
 }

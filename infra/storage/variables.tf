@@ -10,7 +10,5 @@ variable "microservicios" {
 variable "sns_event_subscriptions" {
   description = "Eventos SNS que debe recibir cada cola SQS por microservicio."
   type        = map(list(string))
-  default = {
-    inventario = ["pedido_creado"]
-  }
+  default     = {}
 }

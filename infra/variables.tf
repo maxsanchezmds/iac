@@ -82,6 +82,25 @@ variable "microservice_data_stores" {
   }
 }
 
+variable "sns_event_subscriptions" {
+  description = "Eventos SNS que debe recibir cada cola SQS por microservicio."
+  type        = map(list(string))
+  default     = {}
+
+  validation {
+    condition = alltrue(flatten([
+      for service_name, events in var.sns_event_subscriptions : [
+        can(regex("^[a-z][a-z0-9-]*$", service_name)),
+        length(events) > 0,
+        alltrue([
+          for event_name in events : can(regex("^[a-z][a-z0-9_]*$", event_name))
+        ])
+      ]
+    ]))
+    error_message = "sns_event_subscriptions debe usar microservicios en formato slug y eventos no vacios en snake_case."
+  }
+}
+
 variable "mongodb_connection_strings" {
   description = "MongoDB connection strings por microservicio (ej: inventario)."
   type        = map(string)
