@@ -54,6 +54,14 @@ output "pedidos_service_name" {
   value = try(module.compute.microservice_service_names["pedidos"], null)
 }
 
+output "events_topic_arn" {
+  value = module.storage.events_topic_arn
+}
+
+output "inventario_queue_url" {
+  value = try(module.storage.queue_urls["inventario"], null)
+}
+
 output "client_vpn_endpoint_id" {
   value = try(module.client_vpn[0].endpoint_id, null)
 }

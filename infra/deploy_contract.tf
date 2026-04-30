@@ -28,6 +28,7 @@ locals {
     "/smartlogix/pedidos/deploy/task_definition_family"       = module.compute.microservice_task_definition_families["pedidos"]
     "/smartlogix/pedidos/deploy/ecr_repository_url"           = module.storage.microservice_repository_urls["pedidos"]
     "/smartlogix/pedidos/deploy/canary_discovery_service_arn" = module.compute.microservice_canary_discovery_service_arns["pedidos"]
+    "/smartlogix/pedidos/deploy/events_topic_arn"             = module.storage.events_topic_arn
   } : {}
 }
 

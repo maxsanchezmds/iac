@@ -1,3 +1,5 @@
+data "aws_region" "current" {}
+
 locals {
   microservice_catalog = var.microservice_data_stores
   microservicios       = sort(keys(local.microservice_catalog))
@@ -24,7 +26,11 @@ locals {
     for ms in local.microservicios : ms => merge(
       contains(keys(module.database.postgres_connection_environment), ms) ? merge(module.database.postgres_connection_environment[ms], {
         DATABASE_SSL = "true"
-      }) : {}
+      }) : {},
+      ms == "pedidos" ? {
+        AWS_REGION       = data.aws_region.current.region
+        EVENTS_TOPIC_ARN = module.storage.events_topic_arn
+      } : {}
     )
   }
 
