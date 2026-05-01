@@ -50,8 +50,16 @@ output "pedidos_ecr_repository_url" {
   value = try(module.storage.microservice_repository_urls["pedidos"], null)
 }
 
+output "microservice_ecr_repository_urls" {
+  value = module.storage.microservice_repository_urls
+}
+
 output "pedidos_service_name" {
   value = try(module.compute.microservice_service_names["pedidos"], null)
+}
+
+output "microservice_service_names" {
+  value = module.compute.microservice_service_names
 }
 
 output "events_topic_arn" {
@@ -60,6 +68,10 @@ output "events_topic_arn" {
 
 output "inventario_queue_url" {
   value = try(module.storage.queue_urls["inventario"], null)
+}
+
+output "microservice_queue_urls" {
+  value = module.storage.queue_urls
 }
 
 output "client_vpn_endpoint_id" {
