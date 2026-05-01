@@ -27,8 +27,11 @@ locals {
       contains(keys(module.database.postgres_connection_environment), ms) ? merge(module.database.postgres_connection_environment[ms], {
         DATABASE_SSL = "true"
       }) : {},
+      {
+        AWS_REGION = data.aws_region.current.region
+        QUEUE_URL  = module.storage.queue_urls[ms]
+      },
       ms == "pedidos" ? {
-        AWS_REGION       = data.aws_region.current.region
         EVENTS_TOPIC_ARN = module.storage.events_topic_arn
       } : {}
     )
