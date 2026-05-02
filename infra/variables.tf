@@ -51,7 +51,7 @@ variable "microservice_data_stores" {
   }))
   default = {
     inventario = {
-      data_stores = ["mongodb"]
+      data_stores = ["mongodb", "postgres"]
     }
     pedidos = {
       data_stores = ["postgres"]
