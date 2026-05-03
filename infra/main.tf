@@ -31,7 +31,7 @@ locals {
         AWS_REGION = data.aws_region.current.region
         QUEUE_URL  = module.storage.queue_urls[ms]
       },
-      ms == "pedidos" ? {
+      contains(["pedidos", "envios"], ms) ? {
         EVENTS_TOPIC_ARN = module.storage.events_topic_arn
       } : {}
     )
