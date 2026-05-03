@@ -42,7 +42,7 @@ inputs = {
 
   sns_event_subscriptions = {
     pedidos         = ["stock_aprobado", "stock_rechazado", "envio_finalizado"]
-    envios          = ["pedido_actualizado", "pedido_cancelado"]
+    envios          = ["pedido_aprobado", "pedido_actualizado", "pedido_cancelado"]
     inventario      = ["pedido_creado", "pedido_aprobado", "envio_rechazado", "pedido_cancelado"]
     notificaciones  = ["envio_aprobado", "envio_rechazado", "envio_atrasado", "pedido_finalizado"]
   }
