@@ -41,8 +41,9 @@ inputs = {
   client_vpn_client_cidr_block      = get_env("CLIENT_VPN_CLIENT_CIDR_BLOCK", "172.16.0.0/22")
 
   sns_event_subscriptions = {
+    pedidos         = ["stock_aprobado", "stock_rechazado", "envio_finalizado"]
     envios          = ["pedido_actualizado", "pedido_cancelado"]
-    inventario      = ["pedido_creado"]
-    notificaciones  = ["pedido_cancelado"]
+    inventario      = ["pedido_creado", "pedido_aprobado", "envio_rechazado", "pedido_cancelado"]
+    notificaciones  = ["envio_aprobado", "envio_rechazado", "envio_atrasado", "pedido_finalizado"]
   }
 }
