@@ -17,6 +17,8 @@ permissions:
 env:
   AWS_REGION: us-east-1
   TF_INPUT: "false"
+  TF_STATE_BUCKET: ${{ vars.TF_STATE_BUCKET }}
+  TF_STATE_BUCKET_PREFIX: s3-tf-state-smartlogix
 
 jobs:
   apply:
@@ -45,6 +47,53 @@ jobs:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY }}
           aws-secret-access-key: ${{ secrets.AWS_ACCESS_KEY_SECRET }}
           aws-region: ${{ env.AWS_REGION }}
+
+      - name: Bootstrap Terraform remote state
+        run: |
+          set -euo pipefail
+
+          account_id="$(aws sts get-caller-identity --query Account --output text)"
+          if [ -z "${TF_STATE_BUCKET:-}" ]; then
+            TF_STATE_BUCKET="${TF_STATE_BUCKET_PREFIX}-${account_id}-${AWS_REGION}"
+          fi
+          echo "TF_STATE_BUCKET=$TF_STATE_BUCKET" >> "$GITHUB_ENV"
+
+          if aws s3api head-bucket --bucket "$TF_STATE_BUCKET" 2>/tmp/tf-state-head-bucket.err; then
+            echo "Terraform state bucket already exists: $TF_STATE_BUCKET"
+          else
+            status=$?
+            if grep -qi "Forbidden" /tmp/tf-state-head-bucket.err; then
+              echo "S3 bucket $TF_STATE_BUCKET exists, but these AWS credentials cannot access it." >&2
+              echo "Use a globally unique TF_STATE_BUCKET value or grant access to this bucket." >&2
+              exit "$status"
+            fi
+
+            echo "Creating Terraform state bucket: $TF_STATE_BUCKET"
+            if [ "$AWS_REGION" = "us-east-1" ]; then
+              aws s3api create-bucket \
+                --bucket "$TF_STATE_BUCKET" \
+                --region "$AWS_REGION"
+            else
+              aws s3api create-bucket \
+                --bucket "$TF_STATE_BUCKET" \
+                --region "$AWS_REGION" \
+                --create-bucket-configuration LocationConstraint="$AWS_REGION"
+            fi
+
+            aws s3api wait bucket-exists --bucket "$TF_STATE_BUCKET"
+          fi
+
+          aws s3api put-public-access-block \
+            --bucket "$TF_STATE_BUCKET" \
+            --public-access-block-configuration BlockPublicAcls=true,IgnorePublicAcls=true,BlockPublicPolicy=true,RestrictPublicBuckets=true
+
+          aws s3api put-bucket-versioning \
+            --bucket "$TF_STATE_BUCKET" \
+            --versioning-configuration Status=Enabled
+
+          aws s3api put-bucket-encryption \
+            --bucket "$TF_STATE_BUCKET" \
+            --server-side-encryption-configuration '{"Rules":[{"ApplyServerSideEncryptionByDefault":{"SSEAlgorithm":"AES256"}}]}'
 
       - name: Verify required deployment secrets
         env:
