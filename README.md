@@ -24,6 +24,25 @@ Incluye:
 
 `iac/.github/workflows/iac-ci.yml` solo valida Terraform/Terragrunt.
 
+El workflow `iac/.github/workflows/iac-deploy.yml` inicializa el backend remoto antes
+de ejecutar `terragrunt init`. Si el bucket S3 de estado no existe, lo crea y le
+activa bloqueo publico, versionado y cifrado SSE-S3.
+
+Por defecto usa:
+
+```text
+AWS_REGION=us-east-1
+TF_STATE_BUCKET_PREFIX=s3-tf-state-smartlogix
+```
+
+Si no se define `TF_STATE_BUCKET` como repository variable, el workflow calcula el
+nombre como `<TF_STATE_BUCKET_PREFIX>-<aws-account-id>-<AWS_REGION>`. El nombre de
+un bucket S3 es global; si se fuerza `TF_STATE_BUCKET` y ese nombre existe en otra
+cuenta, hay que cambiarlo o conceder acceso al bucket correcto.
+
+Para ejecuciones locales con backend remoto, exportar `TF_STATE_BUCKET` antes de
+invocar Terragrunt.
+
 ## Acceso privado a bases de datos con AWS Client VPN
 
 El acceso administrativo a PostgreSQL se realiza sin exponer RDS a Internet. El stack `environments/main` puede crear un AWS Client VPN asociado a las subredes privadas de la VPC compartida y autorizar su Security Group contra el Security Group de RDS en el puerto `5432`.

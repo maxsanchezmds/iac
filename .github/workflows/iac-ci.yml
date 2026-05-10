@@ -12,6 +12,7 @@ permissions:
 env:
   AWS_REGION: us-east-1
   TF_INPUT: "false"
+  TF_STATE_BUCKET: terraform-state-validation
 
 jobs:
   validate:

@@ -1,5 +1,6 @@
 locals {
-  aws_region = "us-east-1"
+  aws_region      = get_env("AWS_REGION", "us-east-1")
+  tf_state_bucket = get_env("TF_STATE_BUCKET")
 }
 
 generate "provider" {
@@ -19,7 +20,7 @@ remote_state {
     if_exists = "overwrite_terragrunt"
   }
   config = {
-    bucket       = "s3-tf-state-smartlogix-2026"
+    bucket       = local.tf_state_bucket
     key          = "${path_relative_to_include()}/terraform.tfstate"
     region       = local.aws_region
     encrypt      = true
