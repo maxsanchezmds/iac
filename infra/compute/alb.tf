@@ -89,17 +89,17 @@ resource "aws_lb_listener_rule" "shared_kong_bootstrap" {
     target_group_arn = aws_lb_target_group.kong_blue.arn
   }
 
-  # This rule exists only to keep the target group attached to the shared ALB.
-  # The host value is intentionally non-routable for normal client traffic.
+  # This rule keeps the Kong target group attached to the shared ALB and exposes
+  # API paths for the frontend CloudFront distribution.
   condition {
-    host_header {
-      values = ["slot-${var.environment}.internal.invalid"]
+    path_pattern {
+      values = ["/api/*", "/health/*"]
     }
   }
 
   lifecycle {
     # CodeDeploy owns the production route action after the first blue/green
-    # deployment. The rule must keep its host condition and priority, but the
+    # deployment. The rule must keep its path condition and priority, but the
     # active target group legitimately alternates between blue and green.
     ignore_changes = [action]
 

@@ -1,6 +1,7 @@
 locals {
   publish_kong_deploy_contract          = var.environment == "main"
   publish_microservice_deploy_contracts = var.environment == "main"
+  publish_frontend_deploy_contract      = var.environment == "main"
   kong_deploy_contract_parameters = local.publish_kong_deploy_contract ? {
     "/smartlogix/kong/deploy/cluster_name"                     = module.compute.ecs_cluster_name
     "/smartlogix/kong/deploy/service_name"                     = module.compute.kong_service_name
@@ -31,6 +32,13 @@ locals {
       "/smartlogix/${service}/deploy/queue_arn"                    = module.storage.queue_arns[service]
     }
   ]...) : {}
+  frontend_deploy_contract_parameters = local.publish_frontend_deploy_contract ? {
+    "/smartlogix/web/deploy/bucket_name"                    = module.frontend[0].bucket_name
+    "/smartlogix/web/deploy/cloudfront_distribution_id"     = module.frontend[0].cloudfront_distribution_id
+    "/smartlogix/web/deploy/cloudfront_distribution_domain" = module.frontend[0].cloudfront_distribution_domain_name
+    "/smartlogix/web/deploy/app_url"                        = module.frontend[0].app_url
+    "/smartlogix/web/deploy/api_origin_domain_name"         = var.shared_alb_dns_name
+  } : {}
 }
 
 resource "aws_ssm_parameter" "kong_deploy_contract" {
@@ -43,6 +51,14 @@ resource "aws_ssm_parameter" "kong_deploy_contract" {
 
 resource "aws_ssm_parameter" "microservice_deploy_contract" {
   for_each  = local.microservice_deploy_contract_parameters
+  name      = each.key
+  type      = "String"
+  overwrite = true
+  value     = each.value
+}
+
+resource "aws_ssm_parameter" "frontend_deploy_contract" {
+  for_each  = local.frontend_deploy_contract_parameters
   name      = each.key
   type      = "String"
   overwrite = true

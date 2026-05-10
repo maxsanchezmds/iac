@@ -85,3 +85,15 @@ output "client_vpn_security_group_id" {
 output "client_vpn_log_group_name" {
   value = try(module.client_vpn[0].cloudwatch_log_group_name, null)
 }
+
+output "frontend_bucket_name" {
+  value = try(module.frontend[0].bucket_name, null)
+}
+
+output "frontend_cloudfront_distribution_id" {
+  value = try(module.frontend[0].cloudfront_distribution_id, null)
+}
+
+output "frontend_app_url" {
+  value = try(module.frontend[0].app_url, null)
+}
