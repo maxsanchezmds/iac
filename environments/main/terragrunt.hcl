@@ -13,6 +13,7 @@ locals {
     private_subnets       = ["subnet-00000000000000001", "subnet-00000000000000002"]
     public_subnets        = ["subnet-00000000000000003", "subnet-00000000000000004"]
     vpc_cidr_block        = "10.0.0.0/16"
+    alb_dns_name          = "alb-smartlogix-transversal-000000000.us-east-1.elb.amazonaws.com"
     alb_security_group_id = "sg-00000000000000000"
     http_listener_arn     = "arn:aws:elasticloadbalancing:us-east-1:000000000000:listener/app/alb-smartlogix-transversal/0000000000000000/0000000000000000"
   }
@@ -32,6 +33,7 @@ inputs = {
   shared_private_subnets       = local.use_mock_dependency ? local.transversal_mock_outputs.private_subnets : dependency.transversal.outputs.private_subnets
   shared_public_subnets        = local.use_mock_dependency ? local.transversal_mock_outputs.public_subnets : dependency.transversal.outputs.public_subnets
   shared_vpc_cidr_block        = local.use_mock_dependency ? local.transversal_mock_outputs.vpc_cidr_block : dependency.transversal.outputs.vpc_cidr_block
+  shared_alb_dns_name          = local.use_mock_dependency ? local.transversal_mock_outputs.alb_dns_name : dependency.transversal.outputs.alb_dns_name
   shared_alb_security_group_id = local.use_mock_dependency ? local.transversal_mock_outputs.alb_security_group_id : dependency.transversal.outputs.alb_security_group_id
   shared_http_listener_arn     = local.use_mock_dependency ? local.transversal_mock_outputs.http_listener_arn : dependency.transversal.outputs.http_listener_arn
 

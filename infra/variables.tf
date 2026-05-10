@@ -44,6 +44,12 @@ variable "shared_http_listener_arn" {
   default     = null
 }
 
+variable "shared_alb_dns_name" {
+  description = "DNS name del ALB de ingress compartido"
+  type        = string
+  default     = null
+}
+
 variable "microservice_data_stores" {
   description = "Capacidades de persistencia por microservicio."
   type = map(object({

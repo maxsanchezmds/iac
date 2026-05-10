@@ -148,3 +148,13 @@ module "storage" {
   microservicios          = local.microservicios
   sns_event_subscriptions = var.sns_event_subscriptions
 }
+
+module "frontend" {
+  count  = var.environment == "main" ? 1 : 0
+  source = "./frontend"
+
+  environment            = var.environment
+  api_origin_domain_name = var.shared_alb_dns_name
+
+  depends_on = [module.compute]
+}

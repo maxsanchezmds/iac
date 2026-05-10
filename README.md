@@ -14,11 +14,28 @@ Incluye:
 - Roles IAM para ECS y CodeDeploy.
 - Repositorio ECR del gateway.
 - Parametros SSM de contrato bajo `/smartlogix/kong/deploy/*`.
+- Bucket S3 privado y distribucion CloudFront para `web_smartlogix`.
+- Parametros SSM de contrato bajo `/smartlogix/web/deploy/*`.
 
 ## Flujo recomendado
 
 1. Aplicar IaC (`environments/transversal` y `environments/main`) para dejar la plataforma lista.
-2. Dejar que `kong_gateway` ejecute previews de PR y despliegues canary a produccion desde sus workflows.
+2. Dejar que `kong_gateway` y los microservicios ejecuten previews de PR y despliegues canary a produccion desde sus workflows.
+3. Dejar que `web_smartlogix` publique el frontend estatico en S3/CloudFront desde su workflow.
+
+## Contrato de despliegue del frontend
+
+El stack `main` publica estos parametros SSM para el workflow de `web_smartlogix`:
+
+```text
+/smartlogix/web/deploy/bucket_name
+/smartlogix/web/deploy/cloudfront_distribution_id
+/smartlogix/web/deploy/cloudfront_distribution_domain
+/smartlogix/web/deploy/app_url
+/smartlogix/web/deploy/api_origin_domain_name
+```
+
+CloudFront sirve los assets desde S3 y envia `/api/*` y `/health/*` hacia el ALB compartido. La regla permanente de Kong en el listener compartido enruta esos paths al gateway, por lo que el frontend puede seguir usando rutas relativas como `/api/pedidos`.
 
 ## Pipeline en este repo
 
