@@ -42,12 +42,13 @@ resource "aws_security_group" "rds_sg" {
   }
 }
 
+# Permite que RDS seleccione una version menor disponible de PostgreSQL 17.
 resource "aws_db_instance" "databases" {
   for_each               = toset(var.postgres_services)
   identifier             = "rds-${each.key}-${var.environment}"
   db_name                = local.postgres_database_names[each.key]
   engine                 = "postgres"
-  engine_version         = "17.4"
+  engine_version         = "17"
   instance_class         = "db.t4g.micro"
   allocated_storage      = 20
   username               = local.postgres_usernames[each.key]
